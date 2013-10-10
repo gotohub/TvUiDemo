@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/content"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical" >
+
+    <io.viva.tv.app.widget.FocusedGridView
+        android:id="@+id/gridview"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:columnWidth="172dip"
+        android:listSelector="@android:color/transparent"
+        android:numColumns="6"
+        android:paddingBottom="0dip"
+        android:paddingLeft="30dip"
+        android:paddingRight="30dip"
+        android:paddingTop="20dip"
+        android:scrollbars="none"
+        android:stretchMode="spacingWidth" />
+
+</LinearLayout>

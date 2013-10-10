@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:paddingBottom="10dip"
+    android:paddingTop="23dip" >
+
+    <ImageView
+        android:id="@+id/grid_item"
+        android:layout_width="156dip"
+        android:layout_height="218dip"
+        android:paddingBottom="5dip"
+        android:paddingLeft="4dip"
+        android:paddingRight="4dip"
+        android:paddingTop="4dip"
+        android:scaleType="fitXY"
+        android:src="@drawable/tv_film_black_cover_middle_normal" />
+
+    <TextView
+        android:id="@+id/text_yingshi_grid"
+        android:layout_width="156dip"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dip"
+        android:gravity="center"
+        android:paddingBottom="10dip"
+        android:paddingLeft="10dip"
+        android:paddingRight="10dip"
+        android:singleLine="true"
+        android:tag="txt_marquee_focus"
+        android:textColor="@drawable/text_color"
+        android:textSize="@dimen/tui_text_size_2" />
+
+</LinearLayout>

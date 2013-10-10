@@ -1,0 +1,15 @@
+<?xml version = "1.0"   encoding = "UTF-8"?>
+<resources>
+	<drawable name="transparent">#fff</drawable>
+	
+	<!-- 文字颜色 -->
+	<color name="tui_text_color_grey">#FF999999</color> <!-- normal文字（有投影） -->
+	<color name="tui_text_color_white">#FFffffff</color> <!-- focus文字（有投影） -->
+	<color name="tui_text_color_grey_2">#FF666666</color> <!-- 输入框内提示文字 -->
+	<color name="tui_text_color_orange">#FFe75000</color> <!-- 错误提示／收藏（有投影） -->
+	
+	<!-- 常规色 -->
+	<color name="tui_color_divider_listview">#A1ffffff</color> <!-- listview分割线  -->
+	<color name="tui_color_progressbar">#FF2ba3ff</color> <!-- progress bar  -->
+	<color name="tui_color_dialog_mask">#9A000000</color> <!-- mask  -->
+</resources>

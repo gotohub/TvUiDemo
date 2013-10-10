@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<io.viva.tv.app.widget.FocusedRelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/demo_focuse_layout"
+    android:layout_width="2000dp"
+    android:layout_height="fill_parent"
+    android:focusable="true"
+    android:gravity="center_vertical" >
+
+    <io.viva.tv.app.widget.ReflectImageView
+        android:id="@+id/demo_image1"
+        android:layout_width="230dip"
+        android:layout_height="496dip"
+        android:layout_alignParentLeft="true"
+        android:layout_marginLeft="50dip"
+        android:focusable="true"
+        android:scaleType="fitXY" />
+
+    <io.viva.tv.app.widget.ReflectImageView
+        android:id="@+id/demo_image2"
+        android:layout_width="404dip"
+        android:layout_height="200dip"
+        android:layout_marginLeft="4dip"
+        android:layout_toRightOf="@+id/demo_image1"
+        android:focusable="true"
+        android:scaleType="fitXY" />
+
+    <io.viva.tv.app.widget.ReflectImageView
+        android:id="@+id/demo_image3"
+        android:layout_width="@dimen/demo_layout_image_width"
+        android:layout_height="280dip"
+        android:layout_below="@+id/demo_image2"
+        android:layout_marginLeft="4dip"
+        android:layout_marginTop="4dip"
+        android:layout_toRightOf="@+id/demo_image1"
+        android:focusable="true"
+        android:scaleType="fitXY" />
+
+    <io.viva.tv.app.widget.ReflectImageView
+        android:id="@+id/demo_image4"
+        android:layout_width="@dimen/demo_layout_image_width"
+        android:layout_height="280dip"
+        android:layout_below="@+id/demo_image2"
+        android:layout_marginLeft="4dip"
+        android:layout_marginTop="4dip"
+        android:layout_toRightOf="@+id/demo_image3"
+        android:focusable="true"
+        android:scaleType="fitXY" />
+
+    <io.viva.tv.app.widget.ReflectImageView
+        android:id="@+id/demo_image5"
+        android:layout_width="@dimen/demo_layout_image_width"
+        android:layout_height="200dip"
+        android:layout_marginLeft="4dip"
+        android:layout_toRightOf="@+id/demo_image2"
+        android:focusable="true"
+        android:scaleType="fitXY" />
+
+    <io.viva.tv.app.widget.ReflectImageView
+        android:id="@+id/demo_image6"
+        android:layout_width="@dimen/demo_layout_image_width"
+        android:layout_height="280dip"
+        android:layout_below="@+id/demo_image5"
+        android:layout_marginLeft="4dip"
+        android:layout_marginTop="4dip"
+        android:layout_toRightOf="@+id/demo_image4"
+        android:focusable="true"
+        android:scaleType="fitXY" />
+
+    <io.viva.tv.app.widget.ReflectImageView
+        android:id="@+id/demo_image7"
+        android:layout_width="404dip"
+        android:layout_height="200dip"
+        android:layout_marginLeft="4dip"
+        android:layout_toRightOf="@+id/demo_image5"
+        android:focusable="true"
+        android:scaleType="fitXY" />
+
+    <io.viva.tv.app.widget.ReflectImageView
+        android:id="@+id/demo_image8"
+        android:layout_width="@dimen/demo_layout_image_width"
+        android:layout_height="280dip"
+        android:layout_below="@+id/demo_image7"
+        android:layout_marginLeft="4dip"
+        android:layout_marginTop="4dip"
+        android:layout_toRightOf="@+id/demo_image6"
+        android:focusable="true"
+        android:scaleType="fitXY" />
+
+    <io.viva.tv.app.widget.ReflectImageView
+        android:id="@+id/demo_image9"
+        android:layout_width="@dimen/demo_layout_image_width"
+        android:layout_height="280dip"
+        android:layout_below="@+id/demo_image7"
+        android:layout_marginLeft="4dip"
+        android:layout_marginTop="4dip"
+        android:layout_toRightOf="@+id/demo_image8"
+        android:focusable="true"
+        android:scaleType="fitXY" />
+
+    <io.viva.tv.app.widget.ReflectImageView
+        android:id="@+id/demo_image10"
+        android:layout_width="236dip"
+        android:layout_height="490dip"
+        android:layout_marginLeft="4dip"
+        android:layout_toRightOf="@+id/demo_image9"
+        android:focusable="true"
+        android:scaleType="fitXY" />
+
+    <io.viva.tv.app.widget.ReflectImageView
+        android:id="@+id/demo_image11"
+        android:layout_width="@dimen/demo_layout_image_width"
+        android:layout_height="200dip"
+        android:layout_marginLeft="4dip"
+        android:layout_toRightOf="@+id/demo_image10"
+        android:focusable="true"
+        android:scaleType="fitXY" />
+
+    <io.viva.tv.app.widget.ReflectImageView
+        android:id="@+id/demo_image12"
+        android:layout_width="@dimen/demo_layout_image_width"
+        android:layout_height="280dip"
+        android:layout_below="@+id/demo_image11"
+        android:layout_marginLeft="4dip"
+        android:layout_marginTop="4dip"
+        android:layout_toRightOf="@+id/demo_image10"
+        android:focusable="true"
+        android:scaleType="fitXY" />
+
+</io.viva.tv.app.widget.FocusedRelativeLayout>

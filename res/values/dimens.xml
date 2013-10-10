@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- margin -->
+    <dimen name="tui_margin_1">12dip</dimen>
+    <dimen name="tui_margin_2">16dip</dimen>
+    <dimen name="tui_margin_3">20dip</dimen>
+    <dimen name="tui_margin_4">24dip</dimen>
+    <dimen name="tui_margin_5">48dip</dimen>
+    <dimen name="tui_margin_6">64dip</dimen>
+    <dimen name="tui_margin_7">80dip</dimen>
+    <dimen name="tui_margin_8">100dip</dimen>
+
+    <!-- padding -->
+    <dimen name="tui_padding_1">24dip</dimen>
+    <dimen name="tui_padding_2">48dip</dimen>
+    <dimen name="tui_padding_3">64dip</dimen>
+    <dimen name="tui_padding_4">80dip</dimen>
+    <dimen name="tui_padding_5">100dip</dimen>
+
+    <!-- =========高度======== -->
+    <dimen name="tui_btn_height">48dip</dimen>
+ <!-- normal btn的高度 -->
+    <dimen name="tui_line_height_1">64dip</dimen>
+ <!-- list行高的标准高度（最小高度） -->
+    <dimen name="tui_line_height_2">80dip</dimen>
+ <!-- header高度／list较宽的行高 -->
+
+
+    <!-- =========文字大小======== -->
+    <dimen name="tui_text_size_1">16sp</dimen>
+ <!-- 时间／消息提示 -->
+    <dimen name="tui_text_size_2">24sp</dimen>
+ <!-- normal文字 -->
+    <dimen name="tui_text_size_3">32sp</dimen>
+ <!-- 大title／header上的tab文字 -->
+
+    <dimen name="demo_layout_image_width">200dp</dimen>
+    <dimen name="demo_layout_image_height">185dp</dimen>
+    <dimen name="demo_pgae_image_width">226dp</dimen>
+    <dimen name="demo_pgae_image1_height">342dp</dimen>
+    <dimen name="demo_pgae_image_height">170dp</dimen>
+    <dimen name="demo_pgae_image_large_w">248dp</dimen>
+    <dimen name="demo_pgae_reflectimage_height">80dp</dimen>
+
+</resources>
