@@ -13,6 +13,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 	private Button mDemo2Btn;
 	private Button mDemo3Btn;
 	private Button mDemo4Btn;
+	private Button mDemo5Btn;
 
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -22,12 +23,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
 		mDemo2Btn = (Button) findViewById(R.id.demo2);
 		mDemo3Btn = (Button) findViewById(R.id.demo3);
 		mDemo4Btn = (Button) findViewById(R.id.demo4);
+		mDemo5Btn = (Button) findViewById(R.id.demo5);
 
 		mDemo1Btn.setOnClickListener(this);
 		mDemo2Btn.setOnClickListener(this);
 		mDemo3Btn.setOnClickListener(this);
 		mDemo4Btn.setOnClickListener(this);
-
+		mDemo5Btn.setOnClickListener(this);
 	}
 
 	@Override
@@ -46,6 +48,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
 		case R.id.demo4:
 			intent = new Intent(MainActivity.this, FocusedGridViewDemo.class);
 			intent.putExtra("hasCoverFlow", false);
+			startActivity(intent);
+			break;
+		case R.id.demo5:
+			intent = new Intent(MainActivity.this, FocusedGridViewDemo.class);
+			intent.putExtra("hasCoverFlow", true);
 			startActivity(intent);
 			break;
 		}

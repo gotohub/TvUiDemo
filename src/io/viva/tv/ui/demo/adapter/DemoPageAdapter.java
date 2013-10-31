@@ -1,9 +1,9 @@
 package io.viva.tv.ui.demo.adapter;
 
 import io.viva.tv.app.widget.FocusedRelativeLayout;
-import io.viva.tv.app.widget.PagerAdapter;
 import io.viva.tv.app.widget.ReflectImageView;
 import io.viva.tv.app.widget.ViewPager;
+import io.viva.tv.app.widget.adapter.PagerAdapter;
 import io.viva.tv.ui.demo.R;
 
 import java.util.ArrayList;

@@ -1,5 +1,6 @@
 package io.viva.tv.app.widget;
 
+import io.viva.tv.lib.LOG;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Rect;
@@ -19,20 +20,19 @@ public abstract class FocusedBasePositionManager {
 	public static final int SCALED_FIXED_COEF = 1;
 	public static final int SCALED_FIXED_X = 2;
 	public static final int SCALED_FIXED_Y = 3;
-	private int mCurrentFrame = 1;
-	private int mFrameRate = 6;
+	private boolean DEBUG = true;
+	private int mCurrentFrame = DEFAULT_FRAME;
+	private int mFrameRate = DEFAULT_FRAME_RATE;
 	private int mFocusFrameRate = 2;
 	private int mScaleFrameRate = 2;
 	private float mScaleXValue = 1.0F;
 	private float mScaleYValue = 1.0F;
-
-	private int mScaledMode = 2;
+	private int mScaledMode = SCALED_FIXED_X;
 	private int mFixedScaledX = 30;
 	private int mFixedScaledY = 30;
-
 	private int mState = 0;
 	private boolean mNeedDraw = false;
-	private int mode = 1;
+	private int mode = FOCUS_ASYNC_DRAW;
 	private Rect mSelectedPaddingRect = new Rect();
 	private Rect mManualSelectedPaddingRect = new Rect();
 	protected Drawable mMySelectedDrawable = null;
@@ -52,86 +52,96 @@ public abstract class FocusedBasePositionManager {
 	private Rect mCurrentRect;
 	private boolean mScaleCurrentView = true;
 	private boolean mScaleLastView = true;
+	private boolean mIsScale = true;
 
-	public FocusedBasePositionManager(Context context, View container) {
-		this.mContext = context;
-		this.mContainerView = container;
+	public FocusedBasePositionManager(Context paramContext, View paramView) {
+		this.mContext = paramContext;
+		this.mContainerView = paramView;
 	}
 
-	public void drawFrame(Canvas canvas) {
-		Log.w("FocusedBasePositionManager", "drawFrame: mCurrentFrame = " + this.mCurrentFrame + ", needDraw = " + this.mNeedDraw + ", mode = " + this.mode + ", mScaleXValue = " + this.mScaleXValue + ", mScaleYValue = " + this.mScaleYValue + ", mFocusFrameRate = "
-				+ this.mFocusFrameRate + ", mScaleFrameRate" + this.mScaleFrameRate);
-		if (this.mode == 0)
-			drawSyncFrame(canvas);
-		else if (1 == this.mode)
-			drawAsyncFrame(canvas);
-		else if (2 == this.mode)
-			drawStaticFrame(canvas);
+	public void drawFrame(Canvas paramCanvas) {
+		LOG.d(TAG, this.DEBUG, "drawFrame: mCurrentFrame = " + this.mCurrentFrame + ", needDraw = " + this.mNeedDraw + ", mode = " + this.mode + ", mScaleXValue = "
+				+ this.mScaleXValue + ", mScaleYValue = " + this.mScaleYValue + ", mFocusFrameRate = " + this.mFocusFrameRate + ", mScaleFrameRate" + this.mScaleFrameRate);
+		if (FOCUS_SYNC_DRAW == this.mode) {
+			drawSyncFrame(paramCanvas);
+		} else if (FOCUS_ASYNC_DRAW == this.mode) {
+			drawAsyncFrame(paramCanvas);
+		} else if (FOCUS_STATIC_DRAW == this.mode) {
+			drawStaticFrame(paramCanvas);
+		}
 	}
 
-	public void setScaleMode(int mode) {
-		this.mScaledMode = mode;
+	public void setScaleMode(int paramInt) {
+		this.mScaledMode = paramInt;
 	}
 
-	public void setScaleCurrentView(boolean isScale) {
-		this.mScaleCurrentView = isScale;
+	public void setScale(boolean paramBoolean) {
+		this.mIsScale = paramBoolean;
 	}
 
-	public void setScaleLastView(boolean isScale) {
-		this.mScaleLastView = isScale;
+	public void setScaleCurrentView(boolean paramBoolean) {
+		this.mScaleCurrentView = paramBoolean;
+	}
+
+	public void setScaleLastView(boolean paramBoolean) {
+		this.mScaleLastView = paramBoolean;
 	}
 
 	public boolean isLastFrame() {
 		return this.mIsLastFrame;
 	}
 
-	public void setContrantNotDraw(boolean notDraw) {
-		this.mConstrantNotDraw = notDraw;
+	public void setContrantNotDraw(boolean paramBoolean) {
+		this.mConstrantNotDraw = paramBoolean;
 	}
 
-	public void setFocusDrawableVisible(boolean visible, boolean restart) {
-		this.mMySelectedDrawable.setVisible(visible, restart);
+	public boolean getContrantNotDraw() {
+		return this.mConstrantNotDraw;
 	}
 
-	public void setFocusDrawableShadowVisible(boolean visible, boolean restart) {
-		this.mMySelectedDrawableShadow.setVisible(visible, restart);
+	public void setFocusDrawableVisible(boolean paramBoolean1, boolean paramBoolean2) {
+		this.mMySelectedDrawable.setVisible(paramBoolean1, paramBoolean2);
 	}
 
-	public void setLastSelectedView(View v) {
-		this.mLastSelectedView = v;
+	public void setFocusDrawableShadowVisible(boolean paramBoolean1, boolean paramBoolean2) {
+		this.mMySelectedDrawableShadow.setVisible(paramBoolean1, paramBoolean2);
 	}
 
-	public void setTransAnimation(boolean transAnimation) {
-		this.mTransAnimation = transAnimation;
+	public void setLastSelectedView(View paramView) {
+		this.mLastSelectedView = paramView;
 	}
 
-	public void setNeedDraw(boolean needDraw) {
-		this.mNeedDraw = needDraw;
+	public void setTransAnimation(boolean paramBoolean) {
+		this.mTransAnimation = paramBoolean;
 	}
 
-	public void setFocusResId(int focusResId) {
-		this.mMySelectedDrawable = this.mContext.getResources().getDrawable(focusResId);
+	public void setNeedDraw(boolean paramBoolean) {
+		this.mNeedDraw = paramBoolean;
+	}
+
+	public void setFocusResId(int paramInt) {
+		this.mMySelectedDrawable = this.mContext.getResources().getDrawable(paramInt);
 		this.mSelectedPaddingRect = new Rect();
 		this.mMySelectedDrawable.getPadding(this.mSelectedPaddingRect);
 	}
 
-	public void setFocusShadowResId(int focusResId) {
-		this.mMySelectedDrawableShadow = this.mContext.getResources().getDrawable(focusResId);
+	public void setFocusShadowResId(int paramInt) {
+		this.mMySelectedDrawableShadow = this.mContext.getResources().getDrawable(paramInt);
 		this.mMySelectedPaddingRectShadow = new Rect();
 		this.mMySelectedDrawableShadow.getPadding(this.mMySelectedPaddingRectShadow);
 	}
 
-	public void setItemScaleValue(float scaleXValue, float scaleYValue) {
-		this.mScaleXValue = scaleXValue;
-		this.mScaleYValue = scaleYValue;
+	public void setItemScaleValue(float paramFloat1, float paramFloat2) {
+		this.mScaleXValue = paramFloat1;
+		this.mScaleYValue = paramFloat2;
 	}
 
-	public void setItemScaleFixedX(int x) {
-		this.mFixedScaledX = x;
+	public void setItemScaleFixedX(int paramInt) {
+		this.mFixedScaledX = paramInt;
 	}
 
-	public void setItemScaleFixedY(int y) {
-		this.mFixedScaledY = y;
+	public void setItemScaleFixedY(int paramInt) {
+		this.mFixedScaledY = paramInt;
 	}
 
 	public float getItemScaleXValue() {
@@ -146,9 +156,9 @@ public abstract class FocusedBasePositionManager {
 		return this.mCurrentRect;
 	}
 
-	public void setState(int s) {
+	public void setState(int paramInt) {
 		synchronized (this) {
-			this.mState = s;
+			this.mState = paramInt;
 		}
 	}
 
@@ -158,11 +168,11 @@ public abstract class FocusedBasePositionManager {
 		}
 	}
 
-	public void setManualPadding(int left, int top, int right, int bottom) {
-		this.mManualSelectedPaddingRect.left = left;
-		this.mManualSelectedPaddingRect.right = right;
-		this.mManualSelectedPaddingRect.top = top;
-		this.mManualSelectedPaddingRect.bottom = bottom;
+	public void setManualPadding(int paramInt1, int paramInt2, int paramInt3, int paramInt4) {
+		this.mManualSelectedPaddingRect.left = paramInt1;
+		this.mManualSelectedPaddingRect.right = paramInt3;
+		this.mManualSelectedPaddingRect.top = paramInt2;
+		this.mManualSelectedPaddingRect.bottom = paramInt4;
 	}
 
 	public int getManualPaddingLeft() {
@@ -213,315 +223,320 @@ public abstract class FocusedBasePositionManager {
 		return this.mMySelectedPaddingRectShadow.bottom;
 	}
 
-	public void setFocus(boolean isFocus) {
-		this.mHasFocus = isFocus;
+	public void setFocus(boolean paramBoolean) {
+		this.mHasFocus = paramBoolean;
 	}
 
 	public boolean hasFocus() {
 		return this.mHasFocus;
 	}
 
-	public void setFocusMode(int mode) {
-		this.mode = mode;
+	public void setFocusMode(int paramInt) {
+		this.mode = paramInt;
 	}
 
-	public void setFrameRate(int rate) {
-		this.mFrameRate = rate;
-		if (rate % 2 == 0) {
-			this.mScaleFrameRate = (rate / 2);
-			this.mFocusFrameRate = (rate / 2);
+	public void setFrameRate(int paramInt) {
+		this.mFrameRate = paramInt;
+		if (paramInt % 2 == 0) {
+			this.mScaleFrameRate = (paramInt / 2);
+			this.mFocusFrameRate = (paramInt / 2);
 		} else {
-			this.mScaleFrameRate = (rate / 2);
-			this.mFocusFrameRate = (rate / 2 + 1);
+			this.mScaleFrameRate = (paramInt / 2);
+			this.mFocusFrameRate = (paramInt / 2 + 1);
 		}
 	}
 
-	public void setSelectedView(View v) {
-		Log.d("FocusedBasePositionManager", "setSelectedView v = " + v);
-		this.mSelectedView = v;
+	public void setFrameRate(int paramInt1, int paramInt2) {
+		this.mFrameRate = (paramInt1 + paramInt2);
+		this.mScaleFrameRate = paramInt1;
+		this.mFocusFrameRate = paramInt2;
+	}
+
+	public void setSelectedView(View paramView) {
+		LOG.i(TAG, this.DEBUG, "setSelectedView v = " + paramView);
+		this.mSelectedView = paramView;
 	}
 
 	public View getSelectedView() {
 		return this.mSelectedView;
 	}
 
-	private void drawSyncFrame(Canvas canvas) {
-		Log.d("FocusedBasePositionManager", "drawSyncFrame");
+	private void drawSyncFrame(Canvas paramCanvas) {
+		LOG.i(TAG, this.DEBUG, "drawSyncFrame");
 		if (getSelectedView() != null) {
 			if ((this.mCurrentFrame < this.mFrameRate) && (this.mNeedDraw)) {
-				if (this.mIsFirstFrame)
-					drawFirstFrame(canvas, true, true);
-				else
-					drawOtherFrame(canvas, true, true);
-			} else if (this.mCurrentFrame == this.mFrameRate) {
-				drawLastFrame(canvas, true, true);
+				if (this.mIsFirstFrame) {
+					drawFirstFrame(paramCanvas, true, true);
+				} else {
+					drawOtherFrame(paramCanvas, true, true);
+				}
+			} else if ((this.mCurrentFrame == this.mFrameRate) && (this.mNeedDraw)) {
+				drawLastFrame(paramCanvas, true, true);
 			} else if (hasFocus()) {
-				drawFocus(canvas, false);
-				this.mLastFocusRect = getDstRectBeforeScale(true);
+				Rect localRect = getDstRectBeforeScale(true);
+				if (localRect != null) {
+					this.mLastFocusRect = localRect;
+					drawFocus(paramCanvas, false);
+				}
 			}
 		} else {
-			Log.w("FocusedBasePositionManager", "drawSyncFrame select view is null");
+			Log.w(TAG, "drawSyncFrame select view is null");
 		}
 	}
 
-	private void drawAsyncFrame(Canvas canvas) {
-		Log.d("FocusedBasePositionManager", "drawAsyncFrame");
+	private void drawAsyncFrame(Canvas paramCanvas) {
+		LOG.i(TAG, this.DEBUG, "drawAsyncFrame");
 		if (getSelectedView() != null) {
-			boolean isScale = this.mCurrentFrame > this.mFocusFrameRate;
+			boolean bool = this.mCurrentFrame > this.mFocusFrameRate;
 			if ((this.mCurrentFrame < this.mFrameRate) && (this.mNeedDraw)) {
-				if (this.mIsFirstFrame)
-					drawFirstFrame(canvas, isScale, !isScale);
-				else
-					drawOtherFrame(canvas, isScale, !isScale);
-			} else if (this.mCurrentFrame == this.mFrameRate)
-				drawLastFrame(canvas, isScale, !isScale);
-			else if (!this.mConstrantNotDraw)
-				if (hasFocus()) {
-					drawFocus(canvas, false);
-					this.mLastFocusRect = getDstRectBeforeScale(true);
+				if (this.mIsFirstFrame) {
+					drawFirstFrame(paramCanvas, bool, !bool);
+				} else {
+					drawOtherFrame(paramCanvas, bool, !bool);
 				}
+			} else if (this.mCurrentFrame == this.mFrameRate) {
+				drawLastFrame(paramCanvas, bool, !bool);
+			} else if (!this.mConstrantNotDraw) {
+				if (hasFocus()) {
+					Rect localRect = getDstRectBeforeScale(true);
+					if (localRect != null) {
+						this.mLastFocusRect = localRect;
+						drawFocus(paramCanvas, false);
+					}
+				}
+				return;
+			}
 		} else {
-			Log.w("FocusedBasePositionManager", "drawAsyncFrame select view is null");
+			Log.w(TAG, "drawAsyncFrame select view is null");
 		}
 	}
 
-	private void drawStaticFrame(Canvas canvas) {
-		Log.d("FocusedBasePositionManager", "drawStaticFrame");
+	private void drawStaticFrame(Canvas paramCanvas) {
+		LOG.i(TAG, this.DEBUG, "drawStaticFrame");
 		if (getSelectedView() != null) {
 			if ((this.mCurrentFrame < this.mFrameRate) && (this.mNeedDraw)) {
-				if (this.mIsFirstFrame)
-					drawFirstFrame(canvas, true, false);
-				else
-					drawOtherFrame(canvas, true, false);
-			} else if (this.mCurrentFrame == this.mFrameRate)
-				drawLastFrame(canvas, true, false);
-			else if (!this.mConstrantNotDraw) {
+				if (this.mIsFirstFrame) {
+					drawFirstFrame(paramCanvas, true, false);
+				} else {
+					drawOtherFrame(paramCanvas, true, false);
+				}
+			} else if ((this.mCurrentFrame == this.mFrameRate) && (this.mNeedDraw)) {
+				drawLastFrame(paramCanvas, true, false);
+			} else if (!this.mConstrantNotDraw) {
 				if (hasFocus()) {
-					drawFocus(canvas, false);
-					this.mLastFocusRect = getDstRectBeforeScale(true);
+					Rect localRect = getDstRectBeforeScale(true);
+					if (localRect != null) {
+						this.mLastFocusRect = localRect;
+						drawFocus(paramCanvas, false);
+					}
 				}
 			}
-		} else
-			Log.w("FocusedBasePositionManager", "drawStaticFrame select view is null");
+		} else {
+			Log.w(TAG, "drawStaticFrame select view is null");
+		}
 	}
 
-	private void drawFirstFrame(Canvas canvas, boolean isScale, boolean isDynamic) {
-		boolean dynamic = isDynamic;
-		float scaleXValue = this.mScaleXValue;
-		float scaleYValue = this.mScaleXValue;
-		if (1 == this.mode) {
-			dynamic = false;
-			scaleXValue = 1.0F;
-			scaleYValue = 1.0F;
+	private void drawFirstFrame(Canvas paramCanvas, boolean paramBoolean1, boolean paramBoolean2) {
+		boolean bool = paramBoolean2;
+		if (FOCUS_ASYNC_DRAW == this.mode) {
+			bool = false;
 		}
 		this.mIsLastFrame = false;
-		if (dynamic)
-			this.mFocusRect = getDstRectBeforeScale(!dynamic);
-		else {
-			this.mFocusRect = getDstRectAfterScale(false);
+		Rect localRect;
+		if (bool) {
+			localRect = getDstRectBeforeScale(!bool);
+			if (null == localRect) {
+				return;
+			}
+			this.mFocusRect = localRect;
+		} else {
+			localRect = getDstRectAfterScale(!bool);
+			if (null == localRect) {
+				return;
+			}
+			this.mFocusRect = localRect;
 		}
-
 		this.mCurrentRect = this.mFocusRect;
-		Log.d("FocusedBasePositionManager", "drawFirstFrame: mFocusRect = " + this.mFocusRect + ", this = " + this);
-
-		drawScale(isScale);
-
+		LOG.d(TAG, this.DEBUG, "drawFirstFrame: mFocusRect = " + this.mFocusRect + ", this = " + this);
+		drawScale(paramBoolean1);
 		if (hasFocus()) {
-			drawFocus(canvas, isDynamic);
+			drawFocus(paramCanvas, paramBoolean2);
 		}
 		this.mIsFirstFrame = false;
 		this.mCurrentFrame += 1;
-
 		this.mContainerView.invalidate();
 	}
 
-	private void drawOtherFrame(Canvas canvas, boolean isScale, boolean isDynamic) {
-		Log.i("FocusedBasePositionManager", "drawOtherFrame, this = " + this);
-
+	private void drawOtherFrame(Canvas paramCanvas, boolean paramBoolean1, boolean paramBoolean2) {
+		LOG.i(TAG, this.DEBUG, "drawOtherFrame, this = " + this);
 		this.mIsLastFrame = false;
-		drawScale(isScale);
-
+		drawScale(paramBoolean1);
 		if (hasFocus()) {
-			drawFocus(canvas, isDynamic);
+			drawFocus(paramCanvas, paramBoolean2);
 		}
 		this.mCurrentFrame += 1;
 		this.mContainerView.invalidate();
 	}
 
-	private void drawLastFrame(Canvas canvas, boolean isScale, boolean isDynamic) {
-		Log.d("FocusedBasePositionManager", "drawLastFrame, this = " + this);
-		this.mIsLastFrame = true;
-
-		drawScale(isScale);
-
-		if (hasFocus()) {
-			drawFocus(canvas, isDynamic);
+	private void drawLastFrame(Canvas paramCanvas, boolean paramBoolean1, boolean paramBoolean2) {
+		LOG.i(TAG, this.DEBUG, "drawLastFrame, this = " + this);
+		Rect localRect = getDstRectBeforeScale(true);
+		if (null == localRect) {
+			return;
 		}
-
+		this.mIsLastFrame = true;
+		drawScale(paramBoolean1);
+		if (hasFocus()) {
+			drawFocus(paramCanvas, paramBoolean2);
+		}
 		this.mCurrentFrame = 1;
-
 		this.mScaleLastView = this.mScaleCurrentView;
 		this.mLastSelectedView = getSelectedView();
 		this.mNeedDraw = false;
 		this.mIsFirstFrame = true;
-		this.mLastFocusRect = getDstRectBeforeScale(true);
-
-		setState(0);
+		this.mLastFocusRect = localRect;
+		setState(STATE_IDLE);
 	}
 
 	private void scaleSelectedView() {
-		View selectedView = getSelectedView();
-		if (selectedView != null) {
-			float diffX = this.mScaleXValue - 1.0F;
-			float diffY = this.mScaleYValue - 1.0F;
-
-			int frameRate = this.mFrameRate;
-			int currentFrame = this.mCurrentFrame;
-
+		View localView = getSelectedView();
+		if (localView != null) {
+			float f1 = this.mScaleXValue - 1.0F;
+			float f2 = this.mScaleYValue - 1.0F;
+			int i = this.mFrameRate;
+			int j = this.mCurrentFrame;
 			if (1 == this.mode) {
-				frameRate = this.mScaleFrameRate;
-				currentFrame -= this.mFocusFrameRate;
-				if (currentFrame <= 0) {
+				i = this.mScaleFrameRate;
+				j -= this.mFocusFrameRate;
+				if (j <= 0) {
 					return;
 				}
 			}
-			float dstScaleX = 1.0F + diffX * currentFrame / frameRate;
-			float dstScaleY = 1.0F + diffY * currentFrame / frameRate;
-			Log.i("FocusedBasePositionManager", "scaleSelectedView: dstScaleX = " + dstScaleX + ", dstScaleY = " + dstScaleY + ", mScaleXValue = " + this.mScaleXValue + ", mScaleYValue = " + this.mScaleYValue + ", Selected View = " + selectedView + ", this = " + this);
-
-			selectedView.setScaleX(dstScaleX);
-			selectedView.setScaleY(dstScaleY);
+			float f3 = 1.0F + f1 * j / i;
+			float f4 = 1.0F + f2 * j / i;
+			LOG.d(TAG, this.DEBUG, "scaleSelectedView: dstScaleX = " + f3 + ", dstScaleY = " + f4 + ", mScaleXValue = " + this.mScaleXValue + ", mScaleYValue = "
+					+ this.mScaleYValue + ", Selected View = " + localView + ", this = " + this);
+			localView.setScaleX(f3);
+			localView.setScaleY(f4);
 		}
 	}
 
 	private void scaleLastSelectedView() {
 		if (this.mLastSelectedView != null) {
-			float diffX = this.mScaleXValue - 1.0F;
-			float diffY = this.mScaleYValue - 1.0F;
-
-			int frameRate = this.mFrameRate;
-			int currentFrame = this.mCurrentFrame;
-
+			float f1 = this.mScaleXValue - 1.0F;
+			float f2 = this.mScaleYValue - 1.0F;
+			int i = this.mFrameRate;
+			int j = this.mCurrentFrame;
 			if (1 == this.mode) {
-				frameRate = this.mScaleFrameRate;
-				if (currentFrame > frameRate) {
+				i = this.mScaleFrameRate;
+				if (j > i) {
 					return;
 				}
 			}
-
-			currentFrame = frameRate - currentFrame;
-			float dstScaleX = 1.0F + diffX * currentFrame / frameRate;
-			float dstScaleY = 1.0F + diffY * currentFrame / frameRate;
-			Log.i("FocusedBasePositionManager", "scaleLastSelectedView: dstScaleX = " + dstScaleX + ", dstScaleY = " + dstScaleY + ", mScaleXValue = " + this.mScaleXValue + ", mScaleYValue = " + this.mScaleYValue + ", mLastSelectedView = " + this.mLastSelectedView + ", this = "
-					+ this + ", mCurrentFrame = " + this.mCurrentFrame);
-
-			this.mLastSelectedView.setScaleX(dstScaleX);
-			this.mLastSelectedView.setScaleY(dstScaleY);
+			j = i - j;
+			float f3 = 1.0F + f1 * j / i;
+			float f4 = 1.0F + f2 * j / i;
+			LOG.d(TAG, this.DEBUG, "scaleLastSelectedView: dstScaleX = " + f3 + ", dstScaleY = " + f4 + ", mScaleXValue = " + this.mScaleXValue + ", mScaleYValue = "
+					+ this.mScaleYValue + ", mLastSelectedView = " + this.mLastSelectedView + ", this = " + this + ", mCurrentFrame = " + this.mCurrentFrame);
+			this.mLastSelectedView.setScaleX(f3);
+			this.mLastSelectedView.setScaleY(f4);
 		}
 	}
 
-	private void drawScale(boolean isScale) {
-		Log.i("FocusedBasePositionManager", "drawScale: mCurrentFrame = " + this.mCurrentFrame + ", mScaleXValue = " + this.mScaleXValue + ", mScaleYValue = " + this.mScaleYValue + ", this = " + this + ", mScaleCurrentView = " + this.mScaleCurrentView + ", mScaleLastView = "
-				+ this.mScaleLastView);
-
-		if ((hasFocus()) && (isScale) && (this.mScaleCurrentView)) {
+	private void drawScale(boolean paramBoolean) {
+		LOG.i(TAG, this.DEBUG, "drawScale: mCurrentFrame = " + this.mCurrentFrame + ", mScaleXValue = " + this.mScaleXValue + ", mScaleYValue = " + this.mScaleYValue + ", this = "
+				+ this + ", mScaleCurrentView = " + this.mScaleCurrentView + ", mScaleLastView = " + this.mScaleLastView);
+		if ((hasFocus()) && (paramBoolean) && (this.mScaleCurrentView) && (this.mIsScale)) {
 			scaleSelectedView();
 		}
-
-		if (this.mScaleLastView)
+		if ((this.mScaleLastView) && (this.mIsScale)) {
 			scaleLastSelectedView();
+		}
 	}
 
-	private void drawFocus(Canvas canvas, boolean isDynamic) {
-		Log.i("FocusedBasePositionManager", "drawFocus: mCurrentFrame = " + this.mCurrentFrame + ", mScaleXValue = " + this.mScaleXValue + ", mScaleYValue = " + this.mScaleYValue + ", this = " + this);
+	private void drawFocus(Canvas paramCanvas, boolean paramBoolean) {
+		LOG.i(TAG, this.DEBUG, "drawFocus: mCurrentFrame = " + this.mCurrentFrame + ", mScaleXValue = " + this.mScaleXValue + ", mScaleYValue = " + this.mScaleYValue + ", this = "
+				+ this);
 		if (this.mConstrantNotDraw) {
 			return;
 		}
-
-		if ((isDynamic) && (this.mTransAnimation) && (this.mLastFocusRect != null) && (getState() != 0) && (!isLastFrame()))
-			drawDynamicFocus(canvas);
-		else
-			drawStaticFocus(canvas);
+		if ((paramBoolean) && (this.mTransAnimation) && (this.mLastFocusRect != null) && (getState() != 0) && (!isLastFrame())) {
+			drawDynamicFocus(paramCanvas);
+		} else {
+			drawStaticFocus(paramCanvas);
+		}
 	}
 
-	private void drawStaticFocus(Canvas canvas) {
-		float diffX = this.mScaleXValue - 1.0F;
-		float diffY = this.mScaleYValue - 1.0F;
-
-		int frameRate = this.mFrameRate;
-		int currentFrame = this.mCurrentFrame;
-
-		float dstScaleX = 1.0F + diffX * currentFrame / frameRate;
-		float dstScaleY = 1.0F + diffY * currentFrame / frameRate;
-		Log.i("FocusedBasePositionManager", "drawStaticFocus: mCurrentFrame = " + this.mCurrentFrame + ", dstScaleX = " + dstScaleX + ", dstScaleY = " + dstScaleY + ", mScaleXValue = " + this.mScaleXValue + ", mScaleYValue = " + this.mScaleYValue + ", this = " + this);
-
-		Rect dstRect = getDstRectAfterScale(true);
-		if (dstRect == null) {
+	private void drawStaticFocus(Canvas paramCanvas) {
+		float f1 = this.mScaleXValue - 1.0F;
+		float f2 = this.mScaleYValue - 1.0F;
+		int i = this.mFrameRate;
+		int j = this.mCurrentFrame;
+		float f3 = 1.0F + f1 * j / i;
+		float f4 = 1.0F + f2 * j / i;
+		LOG.i(TAG, this.DEBUG, "drawStaticFocus: mCurrentFrame = " + this.mCurrentFrame + ", dstScaleX = " + f3 + ", dstScaleY = " + f4 + ", mScaleXValue = " + this.mScaleXValue
+				+ ", mScaleYValue = " + this.mScaleYValue + ", this = " + this);
+		Rect localRect = getDstRectAfterScale(true);
+		if (null == localRect) {
 			return;
 		}
-
-		this.mFocusRect = dstRect;
-		this.mCurrentRect = dstRect;
-
+		this.mFocusRect = localRect;
+		this.mCurrentRect = localRect;
 		if (isLastFrame()) {
-			this.mMySelectedDrawableShadow.setBounds(dstRect);
-			this.mMySelectedDrawableShadow.draw(canvas);
+			this.mMySelectedDrawableShadow.setBounds(localRect);
+			this.mMySelectedDrawableShadow.draw(paramCanvas);
 			this.mMySelectedDrawableShadow.setVisible(true, true);
 		} else {
-			this.mMySelectedDrawable.setBounds(dstRect);
-			this.mMySelectedDrawable.draw(canvas);
+			this.mMySelectedDrawable.setBounds(localRect);
+			this.mMySelectedDrawable.draw(paramCanvas);
 			this.mMySelectedDrawable.setVisible(true, true);
 		}
-
-		if ((this.mSelectedView != null) && (canvas != null) && ((this.mState == 0) || (isLastFrame())))
-			drawChild(canvas);
+		if ((this.mSelectedView != null) && (paramCanvas != null) && ((this.mState == 0) || (isLastFrame()))) {
+			drawChild(paramCanvas);
+		}
 	}
 
-	private void drawDynamicFocus(Canvas canvas) {
-		Rect dstRect = new Rect();
-
-		int frameRate = this.mFrameRate;
-		if (1 == this.mode) {
-			frameRate = this.mFocusFrameRate;
+	private void drawDynamicFocus(Canvas paramCanvas) {
+		Rect localRect = new Rect();
+		int i = this.mFrameRate;
+		if (FOCUS_ASYNC_DRAW == this.mode) {
+			i = this.mFocusFrameRate;
 		}
-
-		int diffLeft = this.mFocusRect.left - this.mLastFocusRect.left;
-		int diffRight = this.mFocusRect.right - this.mLastFocusRect.right;
-		int diffTop = this.mFocusRect.top - this.mLastFocusRect.top;
-		int diffBottom = this.mFocusRect.bottom - this.mLastFocusRect.bottom;
-
-		dstRect.left = (this.mLastFocusRect.left + diffLeft * this.mCurrentFrame / frameRate);
-		dstRect.right = (this.mLastFocusRect.right + diffRight * this.mCurrentFrame / frameRate);
-		dstRect.top = (this.mLastFocusRect.top + diffTop * this.mCurrentFrame / frameRate);
-		dstRect.bottom = (this.mLastFocusRect.bottom + diffBottom * this.mCurrentFrame / frameRate);
-		Log.i("FocusedBasePositionManager", "drawDynamicFocus: mCurrentFrame = " + this.mCurrentFrame + ", dstRect.left = " + dstRect.left + ", dstRect.right = " + dstRect.right + ", dstRect.top = " + dstRect.top + ", dstRect.bottom = " + dstRect.bottom + ", this = " + this);
-
-		this.mCurrentRect = dstRect;
-
-		this.mMySelectedDrawable.setBounds(dstRect);
-		this.mMySelectedDrawable.draw(canvas);
+		int j = this.mFocusRect.left - this.mLastFocusRect.left;
+		int k = this.mFocusRect.right - this.mLastFocusRect.right;
+		int m = this.mFocusRect.top - this.mLastFocusRect.top;
+		int n = this.mFocusRect.bottom - this.mLastFocusRect.bottom;
+		localRect.left = (this.mLastFocusRect.left + j * this.mCurrentFrame / i);
+		localRect.right = (this.mLastFocusRect.right + k * this.mCurrentFrame / i);
+		localRect.top = (this.mLastFocusRect.top + m * this.mCurrentFrame / i);
+		localRect.bottom = (this.mLastFocusRect.bottom + n * this.mCurrentFrame / i);
+		LOG.i(TAG, this.DEBUG, "drawDynamicFocus: mCurrentFrame = " + this.mCurrentFrame + ", dstRect.left = " + localRect.left + ", dstRect.right = " + localRect.right
+				+ ", dstRect.top = " + localRect.top + ", dstRect.bottom = " + localRect.bottom + ", this = " + this);
+		this.mCurrentRect = localRect;
+		this.mMySelectedDrawable.setBounds(localRect);
+		this.mMySelectedDrawable.draw(paramCanvas);
 		this.mMySelectedDrawable.setVisible(true, true);
-
-		if ((this.mSelectedView != null) && (canvas != null) && ((this.mState == 0) || (isLastFrame())))
-			drawChild(canvas);
+		if ((this.mSelectedView != null) && (paramCanvas != null) && ((this.mState == 0) || (isLastFrame()))) {
+			drawChild(paramCanvas);
+		}
 	}
 
 	public void computeScaleXY() {
-		if ((2 == this.mScaledMode) || (3 == this.mScaledMode)) {
-			View v = getSelectedView();
-			int[] location = new int[2];
-			v.getLocationOnScreen(location);
-			int width = v.getWidth();
-			int height = v.getHeight();
-			if (2 == this.mScaledMode) {
-				this.mScaleXValue = ((width + this.mFixedScaledX) / width);
+		if ((SCALED_FIXED_X == this.mScaledMode) || (SCALED_FIXED_Y == this.mScaledMode)) {
+			View localView = getSelectedView();
+			int[] arrayOfInt = new int[2];
+			localView.getLocationOnScreen(arrayOfInt);
+			int i = localView.getWidth();
+			int j = localView.getHeight();
+			if (SCALED_FIXED_X == this.mScaledMode) {
+				this.mScaleXValue = ((i + this.mFixedScaledX) / i);
 				this.mScaleYValue = this.mScaleXValue;
-			} else if (3 == this.mScaledMode) {
-				this.mScaleXValue = ((height + this.mFixedScaledY) / height);
+			} else if (SCALED_FIXED_Y == this.mScaledMode) {
+				this.mScaleXValue = ((j + this.mFixedScaledY) / j);
 				this.mScaleYValue = this.mScaleXValue;
 			}
-
-			Log.d("FocusedBasePositionManager", "computeScaleXY mScaleXValue = " + this.mScaleXValue + ", mScaleYValue = " + this.mScaleYValue + ", mFixedScaledX = " + this.mFixedScaledX + ", mFixedScaledY = " + this.mFixedScaledY + ", height = " + height + ", width = " + width);
+			LOG.d(TAG, this.DEBUG, "computeScaleXY mScaleXValue = " + this.mScaleXValue + ", mScaleYValue = " + this.mScaleYValue + ", mFixedScaledX = " + this.mFixedScaledX
+					+ ", mFixedScaledY = " + this.mFixedScaledY + ", height = " + j + ", width = " + i);
 		}
 	}
 
@@ -530,6 +545,10 @@ public abstract class FocusedBasePositionManager {
 	public abstract Rect getDstRectAfterScale(boolean paramBoolean);
 
 	public abstract void drawChild(Canvas paramCanvas);
+
+	public static abstract interface FocusItemSelectedListener {
+		public abstract void onItemSelected(View paramView1, int paramInt, boolean paramBoolean, View paramView2);
+	}
 
 	public static abstract interface PositionInterface {
 		public abstract void setManualPadding(int paramInt1, int paramInt2, int paramInt3, int paramInt4);
@@ -545,5 +564,9 @@ public abstract class FocusedBasePositionManager {
 		public abstract void setFocusMode(int paramInt);
 
 		public abstract void setFocusViewId(int paramInt);
+
+		public abstract void setOnItemClickListener(AdapterView.OnItemClickListener paramOnItemClickListener);
+
+		public abstract void setOnItemSelectedListener(FocusedBasePositionManager.FocusItemSelectedListener paramFocusItemSelectedListener);
 	}
 }

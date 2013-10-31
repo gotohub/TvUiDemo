@@ -1,17 +1,21 @@
 package io.viva.tv.ui.demo.adapter;
 
+import io.viva.tv.app.widget.MediaCoverFlow;
 import io.viva.tv.ui.demo.R;
 import io.viva.tv.ui.demo.view.MyLinearLayout;
 import android.content.Context;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.AbsListView;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
+import android.widget.ImageView.ScaleType;
 import android.widget.SpinnerAdapter;
 import android.widget.TextView;
 
@@ -24,6 +28,7 @@ public class FocusedGridViewAdapter extends BaseAdapter {
 	int imageHeight;
 	private int mNumColumns = 6;
 	MyLinearLayout mHeadView;
+	MediaCoverFlow mCoverFlow;
 	Context mContext;
 	private SpinnerAdapter coverImageAdapter;
 	private boolean hasCoverFlow = false;
@@ -62,7 +67,7 @@ public class FocusedGridViewAdapter extends BaseAdapter {
 		return position;
 	}
 
-	/*private void setupCoverFlow(MediaCoverFlow coverFlow) {
+	private void setupCoverFlow(MediaCoverFlow coverFlow) {
 		coverImageAdapter = new BaseAdapter() {
 
 			@Override
@@ -78,7 +83,7 @@ public class FocusedGridViewAdapter extends BaseAdapter {
 					imageView = (ImageView) convertView;
 				}
 				// 开启硬件加速时，需要加入以下code，才能使抗锯齿生效
-				
+				/*
 				 * Matrix localMatrix = new Matrix(); Bitmap bitmap =
 				 * drawable.getBitmap();
 				 * 
@@ -95,7 +100,7 @@ public class FocusedGridViewAdapter extends BaseAdapter {
 				 * Paint paint = drawable.getPaint(); BitmapShader shader = new
 				 * BitmapShader(bitmap, TileMode.CLAMP, TileMode.CLAMP);
 				 * shader.setLocalMatrix(localMatrix); paint.setShader(shader);
-				 
+				 */
 				return imageView;
 			}
 
@@ -128,7 +133,7 @@ public class FocusedGridViewAdapter extends BaseAdapter {
 		mCoverFlow.setAdapter(coverImageAdapter);
 		mCoverFlow.setSelection(5);
 		mCoverFlow.setDrawShadowImage(false);
-	}*/
+	}
 	
 	/**
 	 * 这里定义三种类型的view: 第一行第一列，第一行其他列，其他。
@@ -160,10 +165,10 @@ public class FocusedGridViewAdapter extends BaseAdapter {
 					mHeadView = (MyLinearLayout) mInflater.inflate(R.layout.headerview_coverflow, null);
 					mHeadView.setFocusable(false);
 					mHeadView.setLayoutParams(new AbsListView.LayoutParams(mScreenWidth - 60, 270));
-					/*mCoverFlow = (MediaCoverFlow) mHeadView.findViewById(R.id.grid_item);
+					mCoverFlow = (MediaCoverFlow) mHeadView.findViewById(R.id.grid_item);
 					mCoverFlow.setFocusable(false);
 					mCoverFlow.setSelected(true);
-					setupCoverFlow(mCoverFlow);*/
+					setupCoverFlow(mCoverFlow);
 				}
 				return mHeadView;
 			}
@@ -187,9 +192,9 @@ public class FocusedGridViewAdapter extends BaseAdapter {
 	}
 
 	public void setHeaderViewFocus(boolean isFocus) {
-		/*if (mCoverFlow != null) {
+		if (mCoverFlow != null) {
 			mCoverFlow.setForceGainFocus(isFocus);
-		}*/
+		}
 	}
 
 }

@@ -1,5 +1,7 @@
 package io.viva.tv.app.widget;
 
+import io.viva.tv.app.widget.adapter.PagerAdapter;
+
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;

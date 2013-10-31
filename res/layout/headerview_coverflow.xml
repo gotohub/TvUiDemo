@@ -4,7 +4,7 @@
     android:layout_height="wrap_content"
     android:focusable="false" >
 
-    <yunos.tv.widget.MediaCoverFlow
+    <io.viva.tv.app.widget.MediaCoverFlow
         android:id="@+id/grid_item"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"

@@ -1,5 +1,10 @@
 package io.viva.tv.app.widget;
 
+import io.viva.tv.app.widget.utils.FlingManager;
+import io.viva.tv.lib.LOG;
+
+import java.lang.reflect.Method;
+
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Rect;
@@ -8,99 +13,85 @@ import android.os.Message;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.SoundEffectConstants;
 import android.view.View;
-import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.AbsListView;
-import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.Scroller;
 
-public class FocusedGridView extends GridView implements FocusedBasePositionManager.PositionInterface {
+public class FocusedGridView extends GridView implements FocusedBasePositionManager.PositionInterface, FlingManager.FlingCallback {
 	private static final String TAG = "FocusedGridView";
-	private static final int SCROLLING_DURATION = 500;
-	private static final int SCROLLING_DELAY = 50;
-	private static final int SCROLL_DURATION = 100;
-	public static final int HORIZONTAL_SINGEL = 1;
-	public static final int HORIZONTAL_FULL = 2;
-	public static final int HORIZONTAL_OUTSIDE_FULL = 3;
-	public static final int HORIZONTAL_OUTSIDE_SINGEL = 4;
-	private long KEY_INTERVEL = 20L;
+	private static final boolean DEBUG = true;
+	private static final int SCROLLING_DURATION = 1200;
+	private static final int SCROLLING_DELAY = 10;
+	private static final int SCROLL_UP = 0;
+	private static final int SCROLL_DOWN = 1;
+	private long KEY_INTERVEL = 150L;
 	private long mKeyTime = 0L;
-
-	private int mCurrentPosition = -1;
+	protected int mCurrentPosition = -1;
 	private int mLastPosition = -1;
 	private AbsListView.OnScrollListener mOuterScrollListener;
 	private boolean isScrolling = false;
 	private Object lock = new Object();
 	private int mStartX;
-	private boolean mNeedScroll = false;
-	private boolean mOutsieScroll = false;
 	private FocusedGridPositionManager mPositionManager;
 	private AdapterView.OnItemClickListener mOnItemClickListener = null;
-	private FocusItemSelectedListener mOnItemSelectedListener = null;
+	private FocusedBasePositionManager.FocusItemSelectedListener mOnItemSelectedListener = null;
 	private int mFocusViewId = -1;
 	private int mHeaderPosition = -1;
 	private boolean mHeaderSelected = false;
 	private boolean mIsFocusInit = false;
 	private int mLastOtherPosition = -1;
-	private FocusedScroller mScroller;
-	private int mScreenWidth;
 	private boolean mInit = false;
-	private int mHorizontalMode = -1;
-	private int mViewLeft = 0;
-	private int mViewRight = 20;
-	private ScrollerListener mScrollerListener;
 	private boolean mAutoChangeLine = true;
-
+	private int mScrollDirection = 1;
+	private int mLastScrollDirection = 1;
+	private int mScrollDuration = 1200;
+	private FocusDrawListener mFocusDrawListener = null;
 	private AbsListView.OnScrollListener mOnScrollListener = new AbsListView.OnScrollListener() {
-		public void onScrollStateChanged(AbsListView view, int scrollState) {
-			if (FocusedGridView.this.mOuterScrollListener != null) {
-				FocusedGridView.this.mOuterScrollListener.onScrollStateChanged(view, scrollState);
-			}
-			Log.d("FocusedGridView", "onScrollStateChanged scrolling");
-			switch (scrollState) {
+		public void onScrollStateChanged(AbsListView paramAnonymousAbsListView, int paramAnonymousInt) {
+			if (FocusedGridView.this.mOuterScrollListener != null)
+				FocusedGridView.this.mOuterScrollListener.onScrollStateChanged(paramAnonymousAbsListView, paramAnonymousInt);
+			switch (paramAnonymousInt) {
 			case 1:
 			case 2:
+				LOG.d("FocusedGridView", true, "onScrollStateChanged fling");
 				FocusedGridView.this.setScrolling(true);
 				break;
 			case 0:
-				Log.d("FocusedGridView", "onScrollStateChanged idle mNeedScroll = " + FocusedGridView.this.mNeedScroll);
-				if (FocusedGridView.this.mNeedScroll) {
-					FocusedGridView.this.setSelection(FocusedGridView.this.mCurrentPosition);
-				}
+				LOG.d("FocusedGridView", true, "onScrollStateChanged idle");
 				FocusedGridView.this.setScrolling(false);
 				break;
 			}
 		}
 
-		public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+		public void onScroll(AbsListView paramAnonymousAbsListView, int paramAnonymousInt1, int paramAnonymousInt2, int paramAnonymousInt3) {
 			if (FocusedGridView.this.mOuterScrollListener != null)
-				FocusedGridView.this.mOuterScrollListener.onScroll(view, firstVisibleItem, visibleItemCount, totalItemCount);
+				FocusedGridView.this.mOuterScrollListener.onScroll(paramAnonymousAbsListView, paramAnonymousInt1, paramAnonymousInt2, paramAnonymousInt3);
 		}
 	};
-
 	public static int FOCUS_ITEM_REMEMBER_LAST = 0;
-
 	public static int FOCUS_ITEM_AUTO_SEARCH = 1;
 	private int focusPositionMode = FOCUS_ITEM_REMEMBER_LAST;
-
+	boolean isKeyDown = false;
 	int mScrollDistance = 0;
 	int mScrollHeaderDiscance = 0;
+	private Method methodSetNextSelectedPositionInt = null;
+	int mScrollY = 0;
 	private static final int DRAW_FOCUS = 1;
 	Handler mHandler = new Handler() {
-		public void handleMessage(Message msg) {
-			switch (msg.what) {
+		public void handleMessage(Message paramAnonymousMessage) {
+			switch (paramAnonymousMessage.what) {
 			case 1:
-				Log.d("FocusedGridView", "Handler handleMessage");
 				if (FocusedGridView.this.getSelectedView() != null) {
 					FocusedGridView.this.performItemSelect(FocusedGridView.this.getSelectedView(), FocusedGridView.this.mCurrentPosition, true);
+				} else {
+					Log.w("FocusedGridView", "Handler handleMessage selected view is null delay");
+					sendEmptyMessageDelayed(1, 10L);
+					return;
 				}
-
-				FocusedGridView.this.mPositionManager.setSelectedView(FocusedGridView.this.getSelectedView());
-				FocusedGridView.this.mPositionManager.setTransAnimation(false);
-				FocusedGridView.this.mPositionManager.setNeedDraw(true);
 				if (FocusedGridView.this.checkHeaderPosition()) {
 					if (!FocusedGridView.this.checkFromHeaderPosition()) {
 						FocusedGridView.this.mPositionManager.setContrantNotDraw(true);
@@ -110,31 +101,33 @@ public class FocusedGridView extends GridView implements FocusedBasePositionMana
 					FocusedGridView.this.mPositionManager.setContrantNotDraw(false);
 					FocusedGridView.this.mPositionManager.setScaleCurrentView(true);
 				}
+				FocusedGridView.this.mPositionManager.setTransAnimation(false);
 				FocusedGridView.this.mPositionManager.setScaleLastView(true);
-				FocusedGridView.this.mPositionManager.setState(1);
-				if (!FocusedGridView.this.isScrolling()) {
+				FocusedGridView.this.mPositionManager.setNeedDraw(true);
+				FocusedGridView.this.mPositionManager.setSelectedView(FocusedGridView.this.getSelectedView());
+				if (!FocusedGridView.this.isScrolling())
 					FocusedGridView.this.invalidate();
-				}
 				break;
 			}
 		}
 	};
 	private onKeyDownListener onKeyDownListener;
+	FlingManager mFlingManager;
 
-	public void setAutoChangeLine(boolean isChange) {
-		this.mAutoChangeLine = isChange;
+	public void setFocusDrawListener(FocusDrawListener paramFocusDrawListener) {
+		this.mFocusDrawListener = paramFocusDrawListener;
 	}
 
-	public void setScrollerListener(ScrollerListener l) {
-		this.mScrollerListener = l;
+	public void setScrollDuration(int paramInt) {
+		this.mScrollDuration = paramInt;
 	}
 
-	public void setHorizontalMode(int mode) {
-		this.mHorizontalMode = mode;
+	public void setAutoChangeLine(boolean paramBoolean) {
+		this.mAutoChangeLine = paramBoolean;
 	}
 
-	public void setHeaderPosition(int position) {
-		this.mHeaderPosition = position;
+	public void setHeaderPosition(int paramInt) {
+		this.mHeaderPosition = paramInt;
 	}
 
 	private boolean hasHeader() {
@@ -145,42 +138,85 @@ public class FocusedGridView extends GridView implements FocusedBasePositionMana
 		return (hasHeader()) && (this.mCurrentPosition < getNumColumns());
 	}
 
-	public boolean checkHeaderPosition(int position) {
-		return (hasHeader()) && (position < getNumColumns());
+	public boolean checkHeaderPosition(int paramInt) {
+		return (hasHeader()) && (paramInt < getNumColumns());
 	}
 
 	public boolean checkFromHeaderPosition() {
 		return (hasHeader()) && (this.mLastPosition < getNumColumns());
 	}
 
-	public void setOutsideSroll(boolean scroll) {
-		Log.d("FocusedGridView", "setOutsideSroll scroll = " + scroll);
-		this.mOutsieScroll = scroll;
+	public void setFocusViewId(int paramInt) {
+		this.mFocusViewId = paramInt;
 	}
 
-	public void setFocusViewId(int id) {
-		this.mFocusViewId = id;
+	public void setOnItemClickListener(AdapterView.OnItemClickListener paramOnItemClickListener) {
+		this.mOnItemClickListener = paramOnItemClickListener;
 	}
 
-	public void setOnItemClickListener(AdapterView.OnItemClickListener listener) {
-		this.mOnItemClickListener = listener;
+	public void setOnItemSelectedListener(FocusedBasePositionManager.FocusItemSelectedListener paramFocusItemSelectedListener) {
+		this.mOnItemSelectedListener = paramFocusItemSelectedListener;
 	}
 
-	public void setOnItemSelectedListener(FocusItemSelectedListener listener) {
-		this.mOnItemSelectedListener = listener;
+	public void setFrameRate(int paramInt) {
+		this.mPositionManager.setFrameRate(paramInt);
 	}
 
-	public void setViewRight(int right) {
-		this.mViewRight = right;
+	public void setScale(boolean paramBoolean) {
+		this.mPositionManager.setScale(paramBoolean);
 	}
 
-	public void setViewLeft(int left) {
-		this.mViewLeft = left;
+	public FocusedGridView(Context paramContext) {
+		super(paramContext);
+		init(paramContext);
 	}
 
-	private void setScrolling(boolean scrolling) {
+	public FocusedGridView(Context paramContext, AttributeSet paramAttributeSet) {
+		super(paramContext, paramAttributeSet);
+		init(paramContext);
+	}
+
+	public FocusedGridView(Context paramContext, AttributeSet paramAttributeSet, int paramInt) {
+		super(paramContext, paramAttributeSet, paramInt);
+		init(paramContext);
+	}
+
+	private void initLeftPosition() {
+		if (!this.mInit) {
+			this.mInit = true;
+			int[] arrayOfInt = new int[2];
+			getLocationOnScreen(arrayOfInt);
+			this.mStartX = (arrayOfInt[0] + getPaddingLeft());
+			LOG.d("FocusedGridView", true, "initLeftPosition mStartX = " + this.mStartX);
+		}
+	}
+
+	public void init(Context paramContext) {
+		Log.i("FocusedGridView", "init mCurrentPosition11:" + this.mCurrentPosition);
+		setChildrenDrawingOrderEnabled(true);
+		this.mPositionManager = new FocusedGridPositionManager(paramContext, this);
+		super.setOnScrollListener(this.mOnScrollListener);
+		Log.i("FocusedGridView", "init mCurrentPosition12:" + this.mCurrentPosition);
+	}
+
+	public boolean onTouchEvent(MotionEvent paramMotionEvent) {
+		return true;
+	}
+
+	protected int getChildDrawingOrder(int paramInt1, int paramInt2) {
+		int i = getSelectedItemPosition() - getFirstVisiblePosition();
+		if (i < 0)
+			return paramInt2;
+		if (paramInt2 < i)
+			return paramInt2;
+		if (paramInt2 >= i)
+			return paramInt1 - 1 - paramInt2 + i;
+		return paramInt2;
+	}
+
+	private void setScrolling(boolean paramBoolean) {
 		synchronized (this.lock) {
-			this.isScrolling = scrolling;
+			this.isScrolling = paramBoolean;
 		}
 	}
 
@@ -190,144 +226,102 @@ public class FocusedGridView extends GridView implements FocusedBasePositionMana
 		}
 	}
 
-	public FocusedGridView(Context contxt) {
-		super(contxt);
-		init(contxt);
-	}
-
-	public FocusedGridView(Context contxt, AttributeSet attrs) {
-		super(contxt, attrs);
-		init(contxt);
-	}
-
-	public FocusedGridView(Context contxt, AttributeSet attrs, int defStyle) {
-		super(contxt, attrs, defStyle);
-		init(contxt);
-	}
-
-	private void initLeftPosition() {
-		if (!this.mInit) {
-			this.mInit = true;
-			int[] location = new int[2];
-			getLocationOnScreen(location);
-			this.mStartX = (location[0] + getPaddingLeft());
-			Log.d("FocusedGridView", "initLeftPosition mStartX = " + this.mStartX);
+	public void dispatchDraw(Canvas paramCanvas) {
+		LOG.d("FocusedGridView", true, "dispatchDraw child count = " + getChildCount() + ", first position = " + getFirstVisiblePosition() + ", last posititon = "
+				+ getLastVisiblePosition());
+		super.dispatchDraw(paramCanvas);
+		if (this.mFocusDrawListener != null) {
+			paramCanvas.save();
+			this.mFocusDrawListener.beforFocusDraw(paramCanvas);
+			paramCanvas.restore();
 		}
-	}
-
-	private void init(Context context) {
-		setChildrenDrawingOrderEnabled(true);
-		this.mPositionManager = new FocusedGridPositionManager(context, this);
-		this.mScroller = new FocusedScroller(context);
-		this.mScreenWidth = context.getResources().getDisplayMetrics().widthPixels;
-		super.setOnScrollListener(this.mOnScrollListener);
-	}
-
-	protected int getChildDrawingOrder(int childCount, int i) {
-		int selectedIndex = getSelectedItemPosition() - getFirstVisiblePosition();
-		if (selectedIndex < 0) {
-			return i;
-		}
-
-		if (i < selectedIndex)
-			return i;
-		if (i >= selectedIndex) {
-			return childCount - 1 - i + selectedIndex;
-		}
-		return i;
-	}
-
-	public void setFrameRate(int rate) {
-		this.mPositionManager.setFrameRate(rate);
-	}
-
-	public void dispatchDraw(Canvas canvas) {
-		Log.i("FocusedGridView", "dispatchDraw child count = " + getChildCount() + ", mOutsieScroll = " + this.mOutsieScroll);
-		super.dispatchDraw(canvas);
 		if ((this.mPositionManager.getSelectedView() == null) && (getSelectedView() != null) && (hasFocus())) {
 			this.mPositionManager.setSelectedView(getSelectedView());
 			performItemSelect(getSelectedView(), this.mCurrentPosition, true);
 		}
-		this.mPositionManager.drawFrame(canvas);
-		if (this.mOutsieScroll) {
-			invalidate();
+		if (getSelectedView() != null) {
+			this.mPositionManager.drawFrame(paramCanvas);
+			if (hasFocus())
+				focusInit();
 		}
+	}
 
-		if (hasFocus())
-			focusInit();
+	public void getFocusedRect(Rect paramRect) {
+		Log.i("FocusedGridView", "getFocusedRect mCurrentPosition" + this.mCurrentPosition + ",getFirstVisiblePosition:" + getFirstVisiblePosition() + ",getLastVisiblePosition:"
+				+ getLastVisiblePosition());
+		if ((this.mCurrentPosition < getFirstVisiblePosition()) || (this.mCurrentPosition > getLastVisiblePosition())) {
+			this.mCurrentPosition = getFirstVisiblePosition();
+			Log.i("FocusedGridView", "mCurrentPosition9:" + this.mCurrentPosition);
+		}
+		super.getFocusedRect(paramRect);
 	}
 
 	public void subSelectPosition() {
+		this.mPositionManager.setLastSelectedView(null);
 		arrowScroll(17);
 	}
 
-	public void setNumColumns(int numColumns) {
-		Log.i("FocusedGridView", "setNumColumns: origin" + getNumColumns() + ",setNumColumns:" + numColumns);
-		int originNumColumns = getNumColumns();
-		if (originNumColumns != numColumns) {
-			int current = getSelectedItemPosition();
-			if (current != -1) {
-				int row = current / originNumColumns;
-				current += row * (numColumns - originNumColumns);
-				if (current != getSelectedItemPosition()) {
-					setSelection(current);
-				}
-			}
-		}
-		super.setNumColumns(numColumns);
-	}
-	
-	public void setSelection(int position) {
-		Log.d("FocusedGridView", "setSelection");
+	public void setSelection(int paramInt) {
+		LOG.i("aabbcc", true, "setSelection = " + paramInt + ", mCurrentPosition = " + this.mCurrentPosition);
 		this.mLastPosition = this.mCurrentPosition;
-		this.mCurrentPosition = position;
-		super.setSelection(position);
+		this.mCurrentPosition = paramInt;
+		Log.i("aabbcc", "mCurrentPosition10:" + this.mCurrentPosition);
+		this.mPositionManager.setTransAnimation(false);
+		this.mPositionManager.setSelectedView(getSelectedView());
+		this.mPositionManager.setLastSelectedView(null);
+		this.mPositionManager.setScaleLastView(false);
+		this.mPositionManager.setScaleCurrentView(true);
+		performItemSelect(getSelectedView(), this.mCurrentPosition, true);
+		this.mPositionManager.setNeedDraw(true);
+		this.mPositionManager.setState(1);
+		requestLayout();
 	}
 
-	public void setOnScrollListener(AbsListView.OnScrollListener l) {
-		this.mOuterScrollListener = l;
+	public void setOnScrollListener(AbsListView.OnScrollListener paramOnScrollListener) {
+		this.mOuterScrollListener = paramOnScrollListener;
 	}
 
-	public void setFocusPositionMode(int mode) {
-		this.focusPositionMode = mode;
+	public void setFocusPositionMode(int paramInt) {
+		LOG.i("FocusedGridView", true, "setFocusPositionMode mode = " + paramInt);
+		this.focusPositionMode = paramInt;
 	}
 
 	public int getFocusPositionMode() {
 		return this.focusPositionMode;
 	}
 
-	protected void onFocusChanged(boolean gainFocus, int direction, Rect previouslyFocusedRect) {
-		Log.d("FocusedGridView", "onFocusChanged,gainFocus:" + gainFocus + ", mCurrentPosition = " + this.mCurrentPosition + ", child count = " + getChildCount());
+	protected void onFocusChanged(boolean paramBoolean, int paramInt, Rect paramRect) {
+		LOG.i("FocusedGridView", true, "onFocusChanged,gainFocus:" + paramBoolean + ", mCurrentPosition = " + this.mCurrentPosition + ", child count = " + getChildCount());
 		if (this.focusPositionMode == FOCUS_ITEM_AUTO_SEARCH) {
-			Log.i("FocusedGridView", "focusaaa,super.onFocusChanged1");
-			super.onFocusChanged(gainFocus, direction, previouslyFocusedRect);
+			LOG.d("FocusedGridView", true, "super.onFocusChanged");
+			super.onFocusChanged(paramBoolean, paramInt, paramRect);
 		}
 		synchronized (this) {
 			this.mKeyTime = System.currentTimeMillis();
 		}
-
-		if (gainFocus != this.mPositionManager.hasFocus()) {
+		if (paramBoolean != this.mPositionManager.hasFocus())
 			this.mIsFocusInit = false;
-		}
-		this.mPositionManager.setFocus(gainFocus);
-
+		this.mPositionManager.setFocus(paramBoolean);
 		focusInit();
 		initLeftPosition();
 	}
 
 	private void focusInit() {
-		if (this.mIsFocusInit) {
+		if (this.mIsFocusInit)
 			return;
-		}
-		Log.d("FocusedGridView", "focusInit mCurrentPosition = " + this.mCurrentPosition + ", getSelectedItemPosition() = " + getSelectedItemPosition());
+		LOG.i("FocusedGridView", true, "focusInit mCurrentPosition = " + this.mCurrentPosition + ", getSelectedItemPosition() = " + getSelectedItemPosition());
 		if (this.mCurrentPosition < 0) {
+			Log.i("FocusedGridView", "mCurrentPosition1:" + this.mCurrentPosition);
 			this.mCurrentPosition = getSelectedItemPosition();
 		}
-
 		if (this.mCurrentPosition < 0) {
+			Log.i("FocusedGridView", "mCurrentPosition2:" + this.mCurrentPosition);
 			this.mCurrentPosition = 0;
 		}
-
+		if ((this.mCurrentPosition < getFirstVisiblePosition()) || (this.mCurrentPosition > getLastVisiblePosition())) {
+			Log.i("FocusedGridView", "mCurrentPosition3:" + this.mCurrentPosition);
+			this.mCurrentPosition = getFirstVisiblePosition();
+		}
 		if (!hasFocus()) {
 			this.mPositionManager.drawFrame(null);
 			this.mPositionManager.setSelectedView(null);
@@ -344,13 +338,11 @@ public class FocusedGridView extends GridView implements FocusedBasePositionMana
 			}
 		} else {
 			if (this.focusPositionMode == FOCUS_ITEM_AUTO_SEARCH) {
-				Log.i("FocusedGridView", "focusaaa,super.onFocusChanged2");
 				this.mCurrentPosition = super.getSelectedItemPosition();
+				Log.i("FocusedGridView", "mCurrentPosition4:" + this.mCurrentPosition);
 			} else {
-				Log.i("FocusedGridView", "onfocus setSelection:" + ((this.mCurrentPosition > -1) && (this.mCurrentPosition < getCount()) ? this.mCurrentPosition : 0));
 				setSelection((this.mCurrentPosition > -1) && (this.mCurrentPosition < getCount()) ? this.mCurrentPosition : 0);
 			}
-
 			this.mPositionManager.setLastSelectedView(null);
 			this.mPositionManager.setScaleLastView(false);
 			if (checkHeaderPosition()) {
@@ -360,7 +352,6 @@ public class FocusedGridView extends GridView implements FocusedBasePositionMana
 				this.mPositionManager.setScaleCurrentView(true);
 			}
 		}
-
 		if (getSelectedView() != null) {
 			if (checkHeaderPosition()) {
 				this.mPositionManager.setSelectedView(getSelectedView());
@@ -369,20 +360,16 @@ public class FocusedGridView extends GridView implements FocusedBasePositionMana
 				this.mPositionManager.setSelectedView(getSelectedView());
 				performItemSelect(getSelectedView(), this.mCurrentPosition, hasFocus());
 			}
-
-			if (this.mCurrentPosition >= 0) {
+			if (this.mCurrentPosition >= 0)
 				this.mIsFocusInit = true;
-			}
 		}
-
-		invalidate();
-
 		this.mPositionManager.setNeedDraw(true);
 		this.mPositionManager.setState(1);
+		invalidate();
 	}
 
-	public void setItemScaleValue(float scaleXValue, float scaleYValue) {
-		this.mPositionManager.setItemScaleValue(scaleXValue, scaleYValue);
+	public void setItemScaleValue(float paramFloat1, float paramFloat2) {
+		this.mPositionManager.setItemScaleValue(paramFloat1, paramFloat2);
 	}
 
 	public int getSelectedItemPosition() {
@@ -394,177 +381,181 @@ public class FocusedGridView extends GridView implements FocusedBasePositionMana
 	}
 
 	public View getSelectedView() {
-		if (getChildCount() <= 0) {
+		if (getChildCount() <= 0)
+			return null;
+		int i = this.mCurrentPosition;
+		if ((i < getFirstVisiblePosition()) || (i > getLastVisiblePosition())) {
+			Log.w("FocusedGridView", "getSelectedView mCurrentPosition = " + this.mCurrentPosition + ", getFirstVisiblePosition() = " + getFirstVisiblePosition()
+					+ ", getLastVisiblePosition() = " + getLastVisiblePosition());
 			return null;
 		}
-
-		int pos = this.mCurrentPosition;
-		if (checkHeaderPosition()) {
-			pos = this.mHeaderPosition;
-		}
-
-		int indexOfView = pos - getFirstVisiblePosition();
-		View selectedView = getChildAt(indexOfView);
-
-		Log.i("FocusedGridView", "getSelectedView getSelectedView: indexOfView = " + indexOfView + ", child count = " + getChildCount());
-		return selectedView;
+		if (checkHeaderPosition())
+			i = this.mHeaderPosition;
+		int j = i - getFirstVisiblePosition();
+		View localView = getChildAt(j);
+		LOG.d("FocusedGridView", true, "getSelectedView getSelectedView: mCurrentPosition = " + this.mCurrentPosition + ", indexOfView = " + j + ", child count = "
+				+ getChildCount() + ", getFirstVisiblePosition() = " + getFirstVisiblePosition() + ", getLastVisiblePosition() = " + getLastVisiblePosition());
+		return localView;
 	}
 
-	private void performItemSelect(View v, int position, boolean isSelected) {
+	private void performItemSelect(View paramView, int paramInt, boolean paramBoolean) {
 		if (this.mOnItemSelectedListener != null)
-			this.mOnItemSelectedListener.onItemSelected(v, position, isSelected, this);
+			this.mOnItemSelectedListener.onItemSelected(paramView, paramInt, paramBoolean, this);
 	}
 
 	private void performItemClick() {
-		View v = getSelectedView();
-		if ((v != null) && (this.mOnItemClickListener != null))
-			this.mOnItemClickListener.onItemClick(this, v, this.mCurrentPosition, 0L);
+		View localView = getSelectedView();
+		if ((localView != null) && (this.mOnItemClickListener != null))
+			this.mOnItemClickListener.onItemClick(this, localView, this.mCurrentPosition, 0L);
 	}
 
-	public boolean onKeyUp(int keyCode, KeyEvent event) {
-		if ((getSelectedView() != null) && (getSelectedView().onKeyUp(keyCode, event))) {
+	public boolean onKeyUp(int paramInt, KeyEvent paramKeyEvent) {
+		if ((getSelectedView() != null) && (getSelectedView().onKeyUp(paramInt, paramKeyEvent))) {
+			this.isKeyDown = false;
 			return true;
 		}
-
-		if ((keyCode == 23) || (keyCode == 66)) {
-			performItemClick();
+		if ((paramInt == 23) || (paramInt == 66)) {
+			if (this.isKeyDown)
+				performItemClick();
+			this.isKeyDown = false;
 			return true;
 		}
-
-		return super.onKeyUp(keyCode, event);
+		if (this.isKeyDown) {
+			this.isKeyDown = false;
+			return true;
+		}
+		return super.onKeyUp(paramInt, paramKeyEvent);
 	}
 
-	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		if ((this.onKeyDownListener != null) && (this.onKeyDownListener.onKeyDown(keyCode, event))) {
+	public boolean onKeyDown(int paramInt, KeyEvent paramKeyEvent) {
+		if ((this.onKeyDownListener != null) && (this.onKeyDownListener.onKeyDown(paramInt, paramKeyEvent)))
 			return true;
-		}
-		if ((keyCode != 23) && (keyCode != 66) && (keyCode != 21) && (keyCode != 22) && (keyCode != 20) && (keyCode != 19)) {
-			return super.onKeyDown(keyCode, event);
-		}
-		Log.d("FocusedGridView", "onKeyDown keyCode = " + keyCode + ", child count = " + getChildCount() + ", mCurrentPosition = " + this.mCurrentPosition);
+		if ((paramInt != 23) && (paramInt != 66) && (paramInt != 21) && (paramInt != 22) && (paramInt != 20) && (paramInt != 19))
+			return super.onKeyDown(paramInt, paramKeyEvent);
+		if (paramKeyEvent.getRepeatCount() == 0)
+			this.isKeyDown = true;
+		LOG.i("FocusedGridView", true, "onKeyDown keyCode = " + paramInt + ", child count = " + getChildCount() + ", mCurrentPosition = " + this.mCurrentPosition);
 		synchronized (this) {
-			if ((System.currentTimeMillis() - this.mKeyTime <= this.KEY_INTERVEL) || (this.mPositionManager.getState() == 1) || (isScrolling())) {
-				Log.d("FocusedGridView", "KyeInterval:" + (System.currentTimeMillis() - this.mKeyTime <= this.KEY_INTERVEL) + "getState():" + this.mPositionManager.getState() + ", isScrolling() = " + isScrolling());
+			if (this.mPositionManager.getState() == 1) {
+				Log.w("FocusedGridView", "onKeyDown KyeInterval = " + (System.currentTimeMillis() - this.mKeyTime) + ", getState() = " + this.mPositionManager.getState()
+						+ ", isScrolling() = " + isScrolling());
 				return true;
 			}
+			if ((isScrolling())
+					&& ((this.mCurrentPosition < getFirstVisiblePosition()) || (this.mCurrentPosition > getLastVisiblePosition()) || (System.currentTimeMillis() - this.mKeyTime <= this.KEY_INTERVEL)))
+				return true;
 			this.mKeyTime = System.currentTimeMillis();
 		}
-
-		if (getChildCount() <= 0) {
+		if (getChildCount() <= 0)
 			return true;
-		}
-
-		if (((2 == this.mHorizontalMode) || (1 == this.mHorizontalMode)) && (!this.mScroller.isFinished()))
-			return true;
-		if (((3 == this.mHorizontalMode) || (4 == this.mHorizontalMode)) && (this.mScrollerListener != null) && (!this.mScrollerListener.isFinished())) {
-			return true;
-		}
-
 		if (!this.mAutoChangeLine) {
-			if ((keyCode == 22) && ((this.mCurrentPosition + 1) % getNumColumns() == 0))
+			if ((paramInt == 22) && ((this.mCurrentPosition + 1) % getNumColumns() == 0))
 				return false;
-			if ((keyCode == 21) && (this.mCurrentPosition != 0) && (this.mCurrentPosition % getNumColumns() == 0)) {
+			if ((paramInt == 21) && (this.mCurrentPosition != 0) && (this.mCurrentPosition % getNumColumns() == 0))
 				return false;
-			}
-
 		}
-
-		if ((getSelectedView() != null) && (getSelectedView().onKeyDown(keyCode, event))) {
+		if ((getSelectedView() != null) && (getSelectedView().onKeyDown(paramInt, paramKeyEvent)))
 			return true;
-		}
-
 		if ((hasHeader())
-				&& ((((this.mCurrentPosition + 1) / getNumColumns() == 1) && ((this.mCurrentPosition + 1) % getNumColumns() == 0) && (22 == keyCode)) || ((this.mCurrentPosition / getNumColumns() == 1) && (this.mCurrentPosition % getNumColumns() == 0) && (21 == keyCode)))) {
+				&& ((((this.mCurrentPosition + 1) / getNumColumns() == 1) && ((this.mCurrentPosition + 1) % getNumColumns() == 0) && (22 == paramInt)) || ((this.mCurrentPosition
+						/ getNumColumns() == 1)
+						&& (this.mCurrentPosition % getNumColumns() == 0) && (21 == paramInt))))
 			return true;
-		}
-
-		switch (keyCode) {
+		switch (paramInt) {
 		case 19:
 			if (!arrowScroll(33)) {
-				return super.onKeyDown(keyCode, event);
+				Log.w("FocusedGridView", "arrowScroll up return false");
+				return false;
 			}
 			return true;
 		case 20:
 			if (!arrowScroll(130)) {
-				return super.onKeyDown(keyCode, event);
+				Log.w("FocusedGridView", "arrowScroll down return false");
+				return false;
 			}
 			return true;
 		case 21:
 			if (!arrowScroll(17)) {
-				return super.onKeyDown(keyCode, event);
+				Log.w("FocusedGridView", "arrowScroll left return false");
+				return false;
 			}
 			return true;
 		case 22:
 			if (!arrowScroll(66)) {
-				return super.onKeyDown(keyCode, event);
+				Log.w("FocusedGridView", "arrowScroll right return false");
+				return false;
 			}
 			return true;
 		}
-
-		Log.d("FocusedGridView", "onKeyDown super");
-		return super.onKeyDown(keyCode, event);
+		return true;
 	}
 
-	private boolean arrowScroll(int direction) {
-		if (this.mScrollDistance <= 0) {
+	public boolean arrowScroll(int paramInt) {
+		if (this.mScrollDistance <= 0)
 			if (hasHeader()) {
-				if (getChildAt(getNumColumns()) != null) {
+				if (getChildAt(getNumColumns()) != null)
 					this.mScrollDistance = getChildAt(getNumColumns()).getHeight();
-				}
 				this.mScrollHeaderDiscance = getChildAt(this.mHeaderPosition).getHeight();
-				Log.i("FocusedGridView", "scrollBy: mScrollHeaderDiscance " + this.mScrollHeaderDiscance);
+				LOG.d("FocusedGridView", true, "scrollBy: mScrollHeaderDiscance " + this.mScrollHeaderDiscance);
 			} else if (getCount() > 0) {
 				this.mScrollDistance = getChildAt(0).getHeight();
-				Log.i("FocusedGridView", "scrollBy: mScrollDistance " + this.mScrollDistance);
+				LOG.d("FocusedGridView", true, "scrollBy: mScrollDistance " + this.mScrollDistance);
 			}
-		}
-
-		Log.i("FocusedGridView", "scrollBy:mCurrentPosition before " + this.mCurrentPosition);
-		View lastSelectedView = getSelectedView();
-
-		int lastPosition = this.mCurrentPosition;
-
-		boolean isNeedTrans = true;
-		int scrollBy = 0;
-		int columns = getNumColumns();
-		int paddedTop = getListPaddingTop();
-		int paddedBottom = getHeight() - getListPaddingBottom();
-		boolean isHeaderViewVisible = this.mHeaderPosition >= getFirstVisiblePosition();
-		switch (direction) {
+		LOG.i("FocusedGridView", true, "scrollBy:mCurrentPosition before " + this.mCurrentPosition);
+		View localView1 = getSelectedView();
+		int i = this.mCurrentPosition;
+		boolean bool1 = true;
+		int j = 0;
+		int k = getNumColumns();
+		int m = getListPaddingTop();
+		int n = getHeight() - getListPaddingBottom();
+		View localView2;
+		switch (paramInt) {
 		case 33:
-			if (this.mCurrentPosition >= columns) {
-				this.mCurrentPosition -= columns;
-				View mCurrentView;
+			if (this.mCurrentPosition >= k) {
+				this.mCurrentPosition -= k;
 				if (checkHeaderPosition()) {
-					mCurrentView = getChildAt(this.mHeaderPosition - getFirstVisiblePosition());
+					localView2 = getChildAt(this.mHeaderPosition - getFirstVisiblePosition());
 					this.mCurrentPosition = this.mHeaderPosition;
+					Log.i("FocusedGridView", "mCurrentPosition5:" + this.mCurrentPosition);
 				} else {
-					mCurrentView = getChildAt(this.mCurrentPosition - getFirstVisiblePosition());
+					localView2 = getChildAt(this.mCurrentPosition - getFirstVisiblePosition());
 				}
-
-				if (mCurrentView != null) {
-					int targetTop = mCurrentView.getTop();
-					if (targetTop < paddedTop)
-						scrollBy = targetTop - paddedTop;
+				if (localView2 != null) {
+					if (localView2.getTop() < m) {
+						endFling();
+						j = localView2.getTop() - m;
+					}
 				} else {
-					scrollBy = checkHeaderPosition() ? -this.mScrollHeaderDiscance : -this.mScrollDistance;
+					endFling();
+					j = checkHeaderPosition(this.mCurrentPosition) ? -this.mScrollHeaderDiscance : -this.mScrollDistance;
+				}
+				if (j != 0) {
+					this.mLastScrollDirection = this.mScrollDirection;
+					this.mScrollDirection = 0;
 				}
 			} else {
 				return false;
 			}
-
 			break;
 		case 130:
-			if (this.mCurrentPosition / columns < (getCount() - 1) / columns) {
-				this.mCurrentPosition += columns;
+			if (this.mCurrentPosition / k < (getCount() - 1) / k) {
+				this.mCurrentPosition += k;
 				this.mCurrentPosition = (this.mCurrentPosition > getCount() - 1 ? getCount() - 1 : this.mCurrentPosition);
-				View mCurrentView = getChildAt(this.mCurrentPosition - getFirstVisiblePosition());
-				if (mCurrentView != null) {
-					int targetBottom = mCurrentView.getBottom();
-					if (targetBottom > paddedBottom)
-						scrollBy = targetBottom - paddedBottom;
+				Log.i("FocusedGridView", "mCurrentPosition6:" + this.mCurrentPosition);
+				localView2 = getChildAt(this.mCurrentPosition - getFirstVisiblePosition());
+				if (localView2 != null) {
+					if (localView2.getBottom() > n) {
+						endFling();
+						j = localView2.getBottom() - n;
+					}
 				} else {
-					scrollBy = isHeaderViewVisible ? this.mScrollHeaderDiscance : this.mScrollDistance;
+					endFling();
+					j = this.mScrollDistance;
+				}
+				if (j != 0) {
+					this.mLastScrollDirection = this.mScrollDirection;
+					this.mScrollDirection = 1;
 				}
 			} else {
 				return false;
@@ -573,23 +564,28 @@ public class FocusedGridView extends GridView implements FocusedBasePositionMana
 		case 17:
 			if (this.mCurrentPosition > 0) {
 				this.mCurrentPosition -= 1;
-				if ((this.mCurrentPosition + 1) % columns == 0) {
-					View mCurrentView;
+				if ((this.mCurrentPosition + 1) % k == 0) {
 					if (checkHeaderPosition()) {
-						mCurrentView = getChildAt(this.mHeaderPosition - getFirstVisiblePosition());
+						localView2 = getChildAt(this.mHeaderPosition - getFirstVisiblePosition());
 						this.mCurrentPosition = this.mHeaderPosition;
+						Log.i("FocusedGridView", "mCurrentPosition7:" + this.mCurrentPosition);
 					} else {
-						mCurrentView = getChildAt(this.mCurrentPosition - getFirstVisiblePosition());
+						localView2 = getChildAt(this.mCurrentPosition - getFirstVisiblePosition());
 					}
-					if (mCurrentView != null) {
-						int targetTop = mCurrentView.getTop();
-						if (targetTop < paddedTop) {
-							scrollBy = targetTop - paddedTop;
+					if (localView2 != null) {
+						if (localView2.getTop() < m) {
+							endFling();
+							j = localView2.getTop() - m;
 						}
-						isNeedTrans = false;
+						bool1 = false;
 					} else {
-						scrollBy = checkHeaderPosition() ? -this.mScrollHeaderDiscance : -this.mScrollDistance;
+						endFling();
+						j = checkHeaderPosition(this.mCurrentPosition) ? -this.mScrollHeaderDiscance : -this.mScrollDistance;
 					}
+				}
+				if (j != 0) {
+					this.mLastScrollDirection = this.mScrollDirection;
+					this.mScrollDirection = 0;
 				}
 			} else {
 				return false;
@@ -598,456 +594,200 @@ public class FocusedGridView extends GridView implements FocusedBasePositionMana
 		case 66:
 			if (this.mCurrentPosition < getCount() - 1) {
 				this.mCurrentPosition += 1;
-				if (this.mCurrentPosition % columns == 0) {
-					View mCurrentView = getChildAt(this.mCurrentPosition - getFirstVisiblePosition());
-					if (mCurrentView != null) {
-						int targetBottom = mCurrentView.getBottom();
-						if (targetBottom > paddedBottom) {
-							scrollBy = targetBottom - paddedBottom;
+				if (this.mCurrentPosition % k == 0) {
+					localView2 = getChildAt(this.mCurrentPosition - getFirstVisiblePosition());
+					if (localView2 != null) {
+						if (localView2.getBottom() > n) {
+							endFling();
+							j = localView2.getBottom() - n;
 						}
-						isNeedTrans = false;
+						bool1 = false;
 					} else {
-						scrollBy = isHeaderViewVisible ? this.mScrollHeaderDiscance : this.mScrollDistance;
+						endFling();
+						j = this.mScrollDistance;
 					}
+				}
+				if (j != 0) {
+					this.mLastScrollDirection = this.mScrollDirection;
+					this.mScrollDirection = 1;
 				}
 			} else {
 				return false;
 			}
 			break;
 		}
-		Log.i("FocusedGridView", "arrowScroll: mCurrentPosition = " + this.mCurrentPosition);
-
-		playSoundEffect(SoundEffectConstants.getContantForFocusDirection(direction));
-
-		if (lastPosition != this.mCurrentPosition) {
-			this.mLastPosition = lastPosition;
-		}
-		if (checkHeaderPosition()) {
-			if (scrollBy != 0) {
+		LOG.d("FocusedGridView", true, "arrowScroll: mCurrentPosition = " + this.mCurrentPosition);
+		playSoundEffect(SoundEffectConstants.getContantForFocusDirection(paramInt));
+		if (i != this.mCurrentPosition)
+			this.mLastPosition = i;
+		if (checkHeaderPosition(this.mCurrentPosition)) {
+			if (j != 0) {
 				this.mPositionManager.setContrantNotDraw(true);
-				this.mNeedScroll = true;
-				smoothScrollBy(scrollBy, 500);
-				this.mHandler.sendEmptyMessageDelayed(1, 50L);
+				arrowSmoothScroll(j);
+				this.mHandler.sendEmptyMessageDelayed(1, 10L);
+				if (localView1 != null)
+					performItemSelect(localView1, i, false);
 				return true;
 			}
 			this.mPositionManager.setContrantNotDraw(true);
 			this.mPositionManager.setTransAnimation(false);
 			if (checkFromHeaderPosition()) {
-				Log.d("FocusedGridView", "arrowScroll focus form header");
+				LOG.d("FocusedGridView", true, "arrowScroll focus form header");
 				this.mPositionManager.setScaleCurrentView(false);
 				this.mPositionManager.setScaleLastView(false);
 				this.mPositionManager.setNeedDraw(false);
 			} else {
-				Log.d("FocusedGridView", "arrowScroll focus form other");
-				this.mLastOtherPosition = lastPosition;
+				LOG.d("FocusedGridView", true, "arrowScroll focus form other");
+				this.mLastOtherPosition = i;
 				this.mPositionManager.setScaleCurrentView(false);
 				this.mPositionManager.setScaleLastView(true);
 				this.mPositionManager.setNeedDraw(true);
 				invalidate();
 			}
-			Log.d("FocusedGridView", "arrowScroll header mCurrentPosition = " + this.mCurrentPosition + ", mHeaderPosition = " + this.mHeaderPosition + ", mHeaderSelected = " + this.mHeaderSelected);
+			LOG.d("FocusedGridView", true, "arrowScroll header mCurrentPosition = " + this.mCurrentPosition + ", mHeaderPosition = " + this.mHeaderPosition
+					+ ", mHeaderSelected = " + this.mHeaderSelected);
 			if (!this.mHeaderSelected) {
 				this.mHeaderSelected = true;
-				if (lastSelectedView != null) {
-					performItemSelect(lastSelectedView, lastPosition, false);
-				}
-
-				if ((getSelectedView() != null) && (getSelectedView() != lastSelectedView) && (lastPosition != this.mCurrentPosition)) {
+				if (localView1 != null)
+					performItemSelect(localView1, i, false);
+				if ((getSelectedView() != null) && (getSelectedView() != localView1) && (i != this.mCurrentPosition))
 					performItemSelect(getSelectedView(), this.mHeaderPosition, true);
-				}
 			}
-
 			return true;
 		}
-
-		boolean isScaleLastView = true;
-		boolean isScaleCurrentView = true;
-		Log.d("FocusedGridView", "arrowScroll this.mLastPosition = " + this.mLastPosition + ", this.mCurrentPosition = " + this.mCurrentPosition + ", lastPosition = " + lastPosition);
+		boolean bool2 = true;
+		boolean bool3 = true;
+		LOG.d("FocusedGridView", true, "arrowScroll this.mLastPosition = " + this.mLastPosition + ", this.mCurrentPosition = " + this.mCurrentPosition + ", lastPosition = " + i);
 		if (checkFromHeaderPosition()) {
-			isNeedTrans = false;
-			isScaleLastView = false;
-			if ((this.mLastOtherPosition >= 0) && (lastPosition == this.mHeaderPosition)) {
+			bool1 = false;
+			bool2 = false;
+			if ((this.mLastOtherPosition >= 0) && (i == this.mHeaderPosition)) {
 				this.mCurrentPosition = this.mLastOtherPosition;
+				Log.i("FocusedGridView", "mCurrentPosition8:" + this.mCurrentPosition);
 			}
 		}
-
 		this.mHeaderSelected = false;
-		if (lastSelectedView != null) {
-			performItemSelect(lastSelectedView, lastPosition, false);
-		}
-
-		if ((getSelectedView() != null) && (getSelectedView() != lastSelectedView) && (lastPosition != this.mCurrentPosition)) {
+		if (localView1 != null)
+			performItemSelect(localView1, i, false);
+		if ((getSelectedView() != null) && (getSelectedView() != localView1) && (i != this.mCurrentPosition))
 			performItemSelect(getSelectedView(), this.mCurrentPosition, true);
-		}
-
-		this.mPositionManager.setSelectedView(getSelectedView());
-
 		if (checkHeaderPosition()) {
-			isNeedTrans = false;
-			isScaleCurrentView = false;
+			bool1 = false;
+			bool3 = false;
 		}
-		this.mPositionManager.setTransAnimation(isNeedTrans);
-
-		horizontalScroll();
-		if (scrollBy != 0) {
-			Log.i("FocusedGridView", "scrollBy: scrollBy = " + scrollBy);
+		this.mPositionManager.setTransAnimation(bool1);
+		this.mPositionManager.setState(1);
+		if (j != 0) {
+			LOG.i("FocusedGridView", true, "scrollBy: scrollBy = " + j);
 			this.mPositionManager.setContrantNotDraw(true);
-			this.mNeedScroll = true;
-			smoothScrollBy(scrollBy, 500);
-			this.mHandler.sendEmptyMessageDelayed(1, 50L);
+			arrowSmoothScroll(j);
+			this.mHandler.sendEmptyMessageDelayed(1, 10L);
 		} else {
-			super.setSelection(this.mCurrentPosition);
+			this.mPositionManager.setSelectedView(getSelectedView());
 			this.mPositionManager.setNeedDraw(true);
 			this.mPositionManager.setContrantNotDraw(false);
-			this.mPositionManager.setState(1);
-			this.mPositionManager.setScaleCurrentView(isScaleCurrentView);
-			this.mPositionManager.setScaleLastView(isScaleLastView);
+			this.mPositionManager.setScaleCurrentView(bool3);
+			this.mPositionManager.setScaleLastView(bool2);
 			invalidate();
 		}
-
 		return true;
 	}
 
-	private void horizontalScroll() {
-		if (1 == this.mHorizontalMode)
-			horizontalScrollSingel();
-		else if (2 == this.mHorizontalMode)
-			horizontalScrollFull();
-		else if ((3 == this.mHorizontalMode) && (this.mScrollerListener != null))
-			horizontalOutsideScrollFull();
-		else if ((4 == this.mHorizontalMode) && (this.mScrollerListener != null))
-			horizontalOutsideScrollSingel();
-	}
-
-	void horizontalScrollFull() {
-		int[] location = new int[2];
-		getSelectedView().getLocationOnScreen(location);
-		int left = location[0];
-		int right = location[0] + getSelectedView().getWidth();
-		int imgW = getSelectedView().getWidth();
-		left = (int) (left + (1.0D - this.mPositionManager.getItemScaleXValue()) * imgW / 2.0D);
-		right = (int) (left + imgW * this.mPositionManager.getItemScaleXValue());
-
-		getLocationOnScreen(location);
-		if ((right >= this.mScreenWidth) && (!this.mOutsieScroll)) {
-			int dx = left - this.mStartX - this.mViewLeft;
-			Log.d("FocusedGridView", "scrollFull to right dx = " + dx + ", mStartX = " + this.mStartX + ", mScreenWidth = " + this.mScreenWidth + ", left = " + left);
-			if (dx + this.mScroller.getFinalX() > location[0] + getWidth()) {
-				dx = location[0] + getWidth() - this.mScroller.getFinalX();
-			}
-			int duration = dx * 100 / 300;
-
-			horizontalSmoothScrollBy(dx, duration);
-			return;
+	void arrowSmoothScroll(int paramInt) {
+		boolean bool = isScrolling();
+		endFling();
+		int i = getCurrentY();
+		LOG.d("FocusedGridView", true, "arrowSmoothScroll currY = " + i + ", mCurrentPosition = " + this.mCurrentPosition + ", isScrolling = " + bool);
+		if (this.mScrollY < 0)
+			i -= 2147483647;
+		LOG.d("FocusedGridView", true, "arrowSmoothScroll currY = " + i + ", mScrollY = " + this.mScrollY + ", scrollBy = " + paramInt);
+		this.mScrollY -= i;
+		if (this.mScrollDirection != this.mLastScrollDirection) {
+			this.mScrollY = 0;
+			i = 0;
 		}
-
-		Log.d("FocusedGridView", "scroll conrtainer left = " + this.mStartX);
-		if ((left < this.mStartX) && (!this.mOutsieScroll)) {
-			int dx = right - this.mScreenWidth;
-			if (this.mScroller.getCurrX() < Math.abs(dx)) {
-				dx = -this.mScroller.getCurrX();
-			}
-			int duration = -dx * 100 / 300;
-
-			this.mScrollerListener.horizontalSmoothScrollBy(dx, duration);
-		}
+		this.mScrollY += paramInt;
+		LOG.d("FocusedGridView", true, "arrowSmoothScroll mScrollY = " + this.mScrollY);
+		smoothScrollBy(this.mScrollY, this.mScrollDuration);
 	}
 
-	void horizontalOutsideScrollFull() {
-		int[] location = new int[2];
-		getSelectedView().getLocationOnScreen(location);
-		int left = location[0];
-		int right = location[0] + getSelectedView().getWidth();
-		int imgW = getSelectedView().getWidth();
-		left = (int) (left + (1.0D - this.mPositionManager.getItemScaleXValue()) * imgW / 2.0D);
-		right = (int) (left + imgW * this.mPositionManager.getItemScaleXValue());
-
-		getLocationOnScreen(location);
-		if ((right >= this.mScreenWidth) && (!this.mOutsieScroll)) {
-			int dx = left - this.mStartX - this.mViewLeft;
-			Log.d("FocusedGridView", "scrollFull to right dx = " + dx + ", mStartX = " + this.mStartX + ", mScreenWidth = " + this.mScreenWidth + ", left = " + left);
-			if (dx + this.mScrollerListener.getFinalX(true) > location[0] + getWidth()) {
-				dx = location[0] + getWidth() - this.mScrollerListener.getFinalX(true);
-			}
-			int duration = dx * 100 / 300;
-
-			this.mScrollerListener.horizontalSmoothScrollBy(dx, duration);
-
-			return;
-		}
-
-		Log.d("FocusedGridView", "scroll conrtainer left = " + this.mStartX);
-		if ((left < this.mStartX) && (!this.mOutsieScroll)) {
-			int dx = right - this.mScreenWidth;
-			if (this.mScrollerListener.getCurrX(true) < Math.abs(dx)) {
-				dx = -this.mScrollerListener.getCurrX(true);
-			}
-			int duration = -dx * 100 / 300;
-
-			this.mScrollerListener.horizontalSmoothScrollBy(dx, duration);
-		}
+	void setNextSelectedPositionInt(int paramInt) {
 	}
 
-	void horizontalScrollSingel() {
-		int[] location = new int[2];
-		getSelectedView().getLocationOnScreen(location);
-		int left = location[0];
-		int right = location[0] + getSelectedView().getWidth();
-		int imgW = getSelectedView().getWidth();
-		left = (int) (left + (1.0D - this.mPositionManager.getItemScaleXValue()) * imgW / 2.0D);
-		right = (int) (left + imgW * this.mPositionManager.getItemScaleXValue());
-
-		Log.d("FocusedGridView", "scroll left = " + location[0] + ", right = " + right);
-		if ((right >= this.mScreenWidth) && (!this.mOutsieScroll)) {
-			int dx = right - this.mScreenWidth + this.mViewRight;
-
-			int duration = -dx * 100 / 300;
-
-			horizontalSmoothScrollBy(dx, duration);
-
-			return;
-		}
-		getLocationOnScreen(location);
-		Log.d("FocusedGridView", "scroll conrtainer left = " + this.mStartX);
-		if ((left < this.mStartX) && (!this.mOutsieScroll)) {
-			int dx = left - this.mStartX;
-			if (this.mScroller.getCurrX() > Math.abs(dx)) {
-				dx = -this.mScroller.getCurrX();
-			}
-
-			int duration = -dx * 100 / 300;
-
-			horizontalSmoothScrollBy(dx, duration);
-		}
+	void endFling() {
+		if (this.mFlingManager != null)
+			this.mFlingManager.endFling();
 	}
 
-	void horizontalOutsideScrollSingel() {
-		int[] location = new int[2];
-		getSelectedView().getLocationOnScreen(location);
-		int left = location[0];
-		int right = location[0] + getSelectedView().getWidth();
-		int imgW = getSelectedView().getWidth();
-		left = (int) (left + (1.0D - this.mPositionManager.getItemScaleXValue()) * imgW / 2.0D);
-		right = (int) (left + imgW * this.mPositionManager.getItemScaleXValue());
-
-		Log.d("FocusedGridView", "scroll left = " + location[0] + ", right = " + right);
-		if ((right >= this.mScreenWidth) && (!this.mOutsieScroll)) {
-			int dx = right - this.mScreenWidth + this.mViewRight;
-
-			int duration = -dx * 100 / 300;
-
-			this.mScrollerListener.horizontalSmoothScrollBy(dx, duration);
-
-			return;
-		}
-		getLocationOnScreen(location);
-		Log.d("FocusedGridView", "scroll conrtainer left = " + this.mStartX);
-		if ((left < this.mStartX) && (!this.mOutsieScroll)) {
-			int dx = left - this.mStartX;
-			if (this.mScrollerListener.getCurrX(true) > Math.abs(dx)) {
-				dx = -this.mScrollerListener.getCurrX(true);
-			}
-
-			int duration = -dx * 100 / 300;
-
-			this.mScrollerListener.horizontalSmoothScrollBy(dx, duration);
-		}
+	int getCurrentY() {
+		if (this.mFlingManager != null)
+			return this.mFlingManager.getActualY();
+		return 0;
 	}
 
-	public void horizontalSmoothScrollTo(int fx, int duration) {
-		int dx = fx - this.mScroller.getFinalX();
-		smoothScrollBy(dx, duration);
+	public void setOnKeyDownListener(onKeyDownListener paramonKeyDownListener) {
+		this.onKeyDownListener = paramonKeyDownListener;
 	}
 
-	public void horizontalSmoothScrollBy(int dx, int duration) {
-		Log.w("FocusedGridView", "smoothScrollBy dx = " + dx);
-		this.mScroller.startScroll(this.mScroller.getFinalX(), this.mScroller.getFinalY(), dx, this.mScroller.getFinalY(), duration);
-		invalidate();
+	public void setManualPadding(int paramInt1, int paramInt2, int paramInt3, int paramInt4) {
+		this.mPositionManager.setManualPadding(paramInt1, paramInt2, paramInt3, paramInt4);
 	}
 
-	public void computeScroll() {
-		if (this.mScroller.computeScrollOffset()) {
-			scrollTo(this.mScroller.getCurrX(), this.mScroller.getCurrY());
-			Log.d("FocusedGridView", "computeScroll mScroller.getCurrX() = " + this.mScroller.getCurrX());
-		}
-
-		super.computeScroll();
+	public void setFocusResId(int paramInt) {
+		this.mPositionManager.setFocusResId(paramInt);
 	}
 
-	public void setOnKeyDownListener(onKeyDownListener l) {
-		this.onKeyDownListener = l;
+	public void setFocusShadowResId(int paramInt) {
+		this.mPositionManager.setFocusShadowResId(paramInt);
 	}
 
-	public void setManualPadding(int left, int top, int right, int bottom) {
-		this.mPositionManager.setManualPadding(left, top, right, bottom);
-	}
-
-	public void setFocusResId(int focusResId) {
-		this.mPositionManager.setFocusResId(focusResId);
-	}
-
-	public void setFocusShadowResId(int focusResId) {
-		this.mPositionManager.setFocusShadowResId(focusResId);
-	}
-
-	public void setFocusMode(int mode) {
-		this.mPositionManager.setFocusMode(mode);
+	public void setFocusMode(int paramInt) {
+		this.mPositionManager.setFocusMode(paramInt);
 	}
 
 	private boolean checkFocusPosition() {
-		Rect dstRect = this.mPositionManager.getDstRectAfterScale(true);
-		Log.i("FocusedGridView", "checkFocusPosition:" + this.mPositionManager.getCurrentRect() + "," + hasFocus() + "," + dstRect + "," + isShown());
-		if ((this.mPositionManager.getCurrentRect() == null) || (!hasFocus()) || (dstRect == null) || (!isShown())) {
+		Rect localRect = this.mPositionManager.getDstRectAfterScale(true);
+		if ((null == this.mPositionManager.getCurrentRect()) || (!hasFocus()) || (null == localRect) || (!isShown()) || (this.mPositionManager.getContrantNotDraw()))
 			return false;
-		}
-
-		if ((Math.abs(dstRect.left - this.mPositionManager.getCurrentRect().left) > 5) || (Math.abs(dstRect.right - this.mPositionManager.getCurrentRect().right) > 5) || (Math.abs(dstRect.top - this.mPositionManager.getCurrentRect().top) > 5)
-				|| (Math.abs(dstRect.bottom - this.mPositionManager.getCurrentRect().bottom) > 5)) {
-			return true;
-		}
-
-		return false;
+		return (Math.abs(localRect.left - this.mPositionManager.getCurrentRect().left) > 5) || (Math.abs(localRect.right - this.mPositionManager.getCurrentRect().right) > 5)
+				|| (Math.abs(localRect.top - this.mPositionManager.getCurrentRect().top) > 5) || (Math.abs(localRect.bottom - this.mPositionManager.getCurrentRect().bottom) > 5);
 	}
 
-	public static abstract interface FocusItemSelectedListener {
-		public abstract void onItemSelected(View paramView, int paramInt, boolean paramBoolean, AdapterView paramAdapterView);
-	}
-
-	class FocusedGridPositionManager extends FocusedBasePositionManager {
-		public FocusedGridPositionManager(Context context, View container) {
-			super(context, container);
-		}
-
-		public Rect getDstRectBeforeScale(boolean isBeforeScale) {
-			View selectedView = getSelectedView();
-			if (selectedView == null) {
-				return null;
-			}
-
-			View imgView = selectedView.findViewById(FocusedGridView.this.mFocusViewId);
-			Rect imgRect = new Rect();
-			Rect gridViewRect = new Rect();
-			Rect selectViewRect = new Rect();
-
-			imgView.getGlobalVisibleRect(imgRect);
-			FocusedGridView.this.getGlobalVisibleRect(gridViewRect);
-			selectedView.getGlobalVisibleRect(selectViewRect);
-			Log.i("FocusedBasePositionManager", "mLastFocusRect imgView:" + imgRect + "(" + imgRect.width() + "," + imgRect.height() + ")");
-			Log.i("FocusedBasePositionManager", "mLastFocusRect gridViewRect:" + gridViewRect + "(" + gridViewRect.width() + "," + gridViewRect.height() + ")");
-			Log.i("FocusedBasePositionManager", "mLastFocusRect selectViewRect:" + selectViewRect + "(" + selectViewRect.width() + "," + selectViewRect.height() + ")");
-
-			if (isBeforeScale) {
-				int hCenter = (selectViewRect.top + selectViewRect.bottom) / 2;
-				int wCenter = (selectViewRect.left + selectViewRect.right) / 2;
-				int imgUnscaleWidth = (int) (imgRect.width() / getItemScaleXValue());
-				int imgUnscaleHeight = (int) (imgRect.height() / getItemScaleYValue());
-
-				imgRect.left = ((int) (wCenter - imgRect.width() / getItemScaleXValue() / 2.0F));
-				imgRect.right = (imgRect.left + imgUnscaleWidth);
-				imgRect.top = ((int) (hCenter - (hCenter - imgRect.top) / getItemScaleYValue()));
-				imgRect.bottom = (imgRect.top + imgUnscaleHeight);
-			}
-
-			int imgW = imgRect.right - imgRect.left;
-			int imgH = imgRect.bottom - imgRect.top;
-			imgRect.left = ((int) (imgRect.left + (1.0D - getItemScaleXValue()) * imgW / 2.0D));
-			imgRect.top = ((int) (imgRect.top + (1.0D - getItemScaleYValue()) * ((selectViewRect.top + selectViewRect.bottom) / 2 - imgRect.top)));
-			imgRect.right = ((int) (imgRect.left + imgW * getItemScaleXValue()));
-			imgRect.bottom = ((int) (imgRect.top + imgH * getItemScaleYValue()));
-
-			if ((2 == FocusedGridView.this.mHorizontalMode) || (1 == FocusedGridView.this.mHorizontalMode)) {
-				imgRect.left += FocusedGridView.this.mScroller.getCurrX();
-				imgRect.right += FocusedGridView.this.mScroller.getCurrX();
-			} else if (((3 == FocusedGridView.this.mHorizontalMode) || (4 == FocusedGridView.this.mHorizontalMode)) && (FocusedGridView.this.mScrollerListener != null)) {
-				imgRect.left += FocusedGridView.this.mScrollerListener.getCurrX(false);
-				imgRect.right += FocusedGridView.this.mScrollerListener.getCurrX(false);
-			}
-
-			imgRect.left -= gridViewRect.left;
-			imgRect.right -= gridViewRect.left;
-			imgRect.top -= gridViewRect.top;
-			imgRect.bottom -= gridViewRect.top;
-
-			imgRect.top -= getSelectedPaddingTop();
-			imgRect.left -= getSelectedPaddingLeft();
-			imgRect.right += getSelectedPaddingRight();
-			imgRect.bottom += getSelectedPaddingBottom();
-			return imgRect;
-		}
-
-		public void drawChild(Canvas canvas) {
-			Log.d("FocusedBasePositionManager", "drawChild");
-			FocusedGridView.this.drawChild(canvas, getSelectedView(), FocusedGridView.this.getDrawingTime());
-		}
-
-		public Rect getDstRectAfterScale(boolean isShadow) {
-			View selectedView = getSelectedView();
-			if (selectedView == null) {
-				return null;
-			}
-
-			View imgView = selectedView.findViewById(FocusedGridView.this.mFocusViewId);
-			Rect imgRect = new Rect();
-			Rect gridViewRect = new Rect();
-			Rect selectViewRect = new Rect();
-
-			imgView.getGlobalVisibleRect(imgRect);
-			selectedView.getGlobalVisibleRect(selectViewRect);
-			FocusedGridView.this.getGlobalVisibleRect(gridViewRect);
-
-			imgRect.left -= gridViewRect.left;
-			imgRect.right -= gridViewRect.left;
-			imgRect.top -= gridViewRect.top;
-			imgRect.bottom -= gridViewRect.top;
-
-			if ((2 == FocusedGridView.this.mHorizontalMode) || (1 == FocusedGridView.this.mHorizontalMode)) {
-				imgRect.left += FocusedGridView.this.mScroller.getCurrX();
-				imgRect.right += FocusedGridView.this.mScroller.getCurrX();
-			} else if (((3 == FocusedGridView.this.mHorizontalMode) || (4 == FocusedGridView.this.mHorizontalMode)) && (FocusedGridView.this.mScrollerListener != null)) {
-				imgRect.left += FocusedGridView.this.mScrollerListener.getCurrX(false);
-				imgRect.right += FocusedGridView.this.mScrollerListener.getCurrX(false);
-			}
-
-			if ((isShadow) && (isLastFrame())) {
-				imgRect.top -= getSelectedShadowPaddingTop();
-				imgRect.left -= getSelectedShadowPaddingLeft();
-				imgRect.right += getSelectedShadowPaddingRight();
-				imgRect.bottom += getSelectedShadowPaddingBottom();
-			} else {
-				imgRect.top -= getSelectedPaddingTop();
-				imgRect.left -= getSelectedPaddingLeft();
-				imgRect.right += getSelectedPaddingRight();
-				imgRect.bottom += getSelectedPaddingBottom();
-			}
-
-			return imgRect;
+	public void smoothScrollBy(int paramInt1, int paramInt2) {
+		if (this.mFlingManager == null)
+			this.mFlingManager = new FlingManager(this, this);
+		int i = getFirstVisiblePosition();
+		int j = getChildCount();
+		int k = i + j - 1;
+		int m = getPaddingTop();
+		int n = getHeight() - getPaddingBottom();
+		if ((paramInt1 == 0) || (getAdapter().getCount() == 0) || (j == 0) || ((i == 0) && (getChildAt(0).getTop() == m) && (paramInt1 < 0))
+				|| ((k == getAdapter().getCount() - 1) && (getChildAt(j - 1).getBottom() == n) && (paramInt1 > 0))) {
+			this.mFlingManager.endFling();
+		} else {
+			this.mFlingManager.focusedReportScrollStateChange(2);
+			this.mFlingManager.startScroll(paramInt1, paramInt2);
 		}
 	}
 
-	class FocusedScroller extends Scroller {
-		public FocusedScroller(Context context, Interpolator interpolator, boolean flywheel) {
-			super(context, interpolator, flywheel);
-		}
+	public void flingLayoutChildren() {
+		layoutChildren();
+	}
 
-		public FocusedScroller(Context context, Interpolator interpolator) {
-			super(context, interpolator);
-		}
+	public int getClipToPaddingMask() {
+		return 34;
+	}
 
-		public FocusedScroller(Context context) {
-			super(context, new AccelerateDecelerateInterpolator());
-		}
+	public boolean flingOverScrollBy(int paramInt1, int paramInt2, int paramInt3, int paramInt4, int paramInt5, int paramInt6, int paramInt7, int paramInt8, boolean paramBoolean) {
+		return overScrollBy(paramInt1, paramInt2, paramInt3, paramInt4, paramInt5, paramInt6, paramInt7, paramInt8, paramBoolean);
+	}
 
-		public boolean computeScrollOffset() {
-			boolean isFinished = isFinished();
-			boolean needInvalidate = FocusedGridView.this.checkFocusPosition();
-			if ((FocusedGridView.this.mOutsieScroll) || (!isFinished) || (needInvalidate)) {
-				FocusedGridView.this.invalidate();
-			}
+	public void flingDetachViewsFromParent(int paramInt1, int paramInt2) {
+		detachViewsFromParent(paramInt1, paramInt2);
+	}
 
-			boolean hr = super.computeScrollOffset();
-			Log.d("FocusedGridView", "FocusedScroller computeScrollOffset isFinished = " + isFinished + ", mOutsieScroll = " + FocusedGridView.this.mOutsieScroll + ", hr = " + hr);
-			return hr;
-		}
+	public boolean flingAwakenScrollBars() {
+		return awakenScrollBars();
 	}
 
 	public static abstract interface ScrollerListener {
@@ -1060,7 +800,126 @@ public class FocusedGridView extends GridView implements FocusedBasePositionMana
 		public abstract boolean isFinished();
 	}
 
+	class FocusedScroller extends Scroller {
+		public FocusedScroller(Context paramInterpolator, Interpolator paramBoolean, boolean arg4) {
+			super(paramInterpolator, paramBoolean, arg4);
+		}
+
+		public FocusedScroller(Context paramInterpolator, Interpolator arg3) {
+			super(paramInterpolator, arg3);
+		}
+
+		public FocusedScroller(Context arg2) {
+			super(arg2);
+		}
+
+		public boolean computeScrollOffset() {
+			boolean bool1 = isFinished();
+			boolean bool2 = FocusedGridView.this.checkFocusPosition();
+			if ((!bool1) || (bool2))
+				FocusedGridView.this.invalidate();
+			boolean bool3 = super.computeScrollOffset();
+			return bool3;
+		}
+	}
+
+	public static abstract interface FocusDrawListener {
+		public abstract void beforFocusDraw(Canvas paramCanvas);
+
+		public abstract void drawChild(Canvas paramCanvas);
+	}
+
+	class FocusedGridPositionManager extends FocusedBasePositionManager {
+		public FocusedGridPositionManager(Context paramView, View arg3) {
+			super(paramView, arg3);
+		}
+
+		public Rect getDstRectBeforeScale(boolean paramBoolean) {
+			View localView1 = getSelectedView();
+			if (null == localView1)
+				return null;
+			View localView2 = localView1.findViewById(FocusedGridView.this.mFocusViewId);
+			Rect localRect1 = new Rect();
+			Rect localRect2 = new Rect();
+			Rect localRect3 = new Rect();
+			localRect1.setEmpty();
+			if (!localView2.getGlobalVisibleRect(localRect1))
+				return null;
+			FocusedGridView.this.getGlobalVisibleRect(localRect2);
+			localView1.getGlobalVisibleRect(localRect3);
+			LOG.d("FocusedBasePositionManager", true, "getDstRectBeforeScale imgView.top = " + localRect1.top + ", imgView.bottom = " + localRect1.bottom + ", gridiew.top = "
+					+ FocusedGridView.this.getTop() + ", gridview.bottom = " + FocusedGridView.this.getBottom());
+			if (paramBoolean) {
+				int i = (localRect3.top + localRect3.bottom) / 2;
+				int j = (localRect3.left + localRect3.right) / 2;
+				int k = (int) (localRect1.width() / getItemScaleXValue());
+				int m = (int) (localRect1.height() / getItemScaleYValue());
+				localRect1.left = ((int) (j - localRect1.width() / getItemScaleXValue() / 2.0F));
+				localRect1.right = (localRect1.left + k);
+				localRect1.top = ((int) (i - (i - localRect1.top) / getItemScaleYValue()));
+				localRect1.bottom = (localRect1.top + m);
+			}
+			int i = localRect1.right - localRect1.left;
+			int j = localRect1.bottom - localRect1.top;
+			localRect1.left = ((int) (localRect1.left + (1.0D - getItemScaleXValue()) * i / 2.0D));
+			localRect1.top = ((int) (localRect1.top + (1.0D - getItemScaleYValue()) * ((localRect3.top + localRect3.bottom) / 2 - localRect1.top)));
+			localRect1.right = ((int) (localRect1.left + i * getItemScaleXValue()));
+			localRect1.bottom = ((int) (localRect1.top + j * getItemScaleYValue()));
+			localRect1.left -= localRect2.left;
+			localRect1.right -= localRect2.left;
+			localRect1.top -= localRect2.top;
+			localRect1.bottom -= localRect2.top;
+			localRect1.top -= getSelectedPaddingTop();
+			localRect1.left -= getSelectedPaddingLeft();
+			localRect1.right += getSelectedPaddingRight();
+			localRect1.bottom += getSelectedPaddingBottom();
+			return localRect1;
+		}
+
+		public void drawChild(Canvas paramCanvas) {
+			LOG.i("FocusedBasePositionManager", true, "drawChild");
+			FocusedGridView.this.drawChild(paramCanvas, getSelectedView(), FocusedGridView.this.getDrawingTime());
+			if (FocusedGridView.this.mFocusDrawListener != null)
+				FocusedGridView.this.mFocusDrawListener.drawChild(paramCanvas);
+		}
+
+		public Rect getDstRectAfterScale(boolean paramBoolean) {
+			View localView1 = getSelectedView();
+			if (null == localView1)
+				return null;
+			View localView2 = localView1.findViewById(FocusedGridView.this.mFocusViewId);
+			Rect localRect1 = new Rect();
+			Rect localRect2 = new Rect();
+			Rect localRect3 = new Rect();
+			if (!localView2.getGlobalVisibleRect(localRect1))
+				return null;
+			localView1.getGlobalVisibleRect(localRect3);
+			FocusedGridView.this.getGlobalVisibleRect(localRect2);
+			localRect1.left -= localRect2.left;
+			localRect1.right -= localRect2.left;
+			localRect1.top -= localRect2.top;
+			localRect1.bottom -= localRect2.top;
+			if ((paramBoolean) && (isLastFrame())) {
+				localRect1.top -= getSelectedShadowPaddingTop();
+				localRect1.left -= getSelectedShadowPaddingLeft();
+				localRect1.right += getSelectedShadowPaddingRight();
+				localRect1.bottom += getSelectedShadowPaddingBottom();
+			} else {
+				localRect1.top -= getSelectedPaddingTop();
+				localRect1.left -= getSelectedPaddingLeft();
+				localRect1.right += getSelectedPaddingRight();
+				localRect1.bottom += getSelectedPaddingBottom();
+			}
+			return localRect1;
+		}
+	}
+
 	public static abstract interface onKeyDownListener {
 		public abstract boolean onKeyDown(int paramInt, KeyEvent paramKeyEvent);
 	}
 }
+
+/*
+ * Location: C:\Users\Administrator\Desktop\AliTvAppSdk.jar Qualified Name:
+ * com.yunos.tv.app.widget.FocusedGridView JD-Core Version: 0.6.2
+ */

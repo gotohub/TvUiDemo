@@ -28,226 +28,204 @@ public class ImageUtils {
 	private static Paint paint;
 	private static DisplayMetrics dm = null;
 
-	public static Bitmap getBitmapByResource(Context context, int id) {
-		Resources resources = context.getResources();
-
-		Drawable drawable = resources.getDrawable(id);
-		Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
-
-		resources = null;
-		drawable = null;
-
-		return bitmap;
+	public static Bitmap getBitmapByResource(Context paramContext, int paramInt) {
+		Resources localResources = paramContext.getResources();
+		Drawable localDrawable = localResources.getDrawable(paramInt);
+		Bitmap localBitmap = ((BitmapDrawable) localDrawable).getBitmap();
+		localResources = null;
+		localDrawable = null;
+		return localBitmap;
 	}
 
-	public static void saveImageToSdcard(String path, Bitmap bitmap) {
-		if ((path == null) || ("".equals(path))) {
+	public static void saveImageToSdcard(String paramString, Bitmap paramBitmap) {
+		if ((null == paramString) || ("".equals(paramString))) {
 			return;
 		}
-		File file = new File(path);
-		FileOutputStream fos = null;
+		File localFile = new File(paramString);
+		FileOutputStream localFileOutputStream = null;
 		try {
-			if (!file.exists()) {
-				file.createNewFile();
+			if (!localFile.exists()) {
+				localFile.createNewFile();
 			}
-			fos = new FileOutputStream(file);
-			bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
+			localFileOutputStream = new FileOutputStream(localFile);
+			paramBitmap.compress(Bitmap.CompressFormat.PNG, 100, localFileOutputStream);
+		} catch (FileNotFoundException localFileNotFoundException) {
+			localFileNotFoundException.printStackTrace();
+		} catch (IOException localIOException3) {
+			localIOException3.printStackTrace();
 		} finally {
-			if (fos != null)
+			if (localFileOutputStream != null) {
 				try {
-					fos.flush();
-					fos.close();
-				} catch (IOException e) {
-					e.printStackTrace();
+					localFileOutputStream.flush();
+					localFileOutputStream.close();
+				} catch (IOException localIOException5) {
+					localIOException5.printStackTrace();
 				}
+			}
 		}
 	}
 
-	public static Bitmap zoomBitmap(Bitmap bitmap, int w, int h) {
-		if (bitmap == null)
+	public static Bitmap zoomBitmap(Bitmap paramBitmap, int paramInt1, int paramInt2) {
+		if (paramBitmap == null) {
 			return null;
-		int width = bitmap.getWidth();
-		int height = bitmap.getHeight();
-		Matrix matrix = new Matrix();
-		float scaleWidht = w / width;
-		float scaleHeight = h / height;
-		matrix.postScale(scaleWidht, scaleHeight);
-		Bitmap newbmp = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
-		return newbmp;
+		}
+		int i = paramBitmap.getWidth();
+		int j = paramBitmap.getHeight();
+		Matrix localMatrix = new Matrix();
+		float f1 = paramInt1 / i;
+		float f2 = paramInt2 / j;
+		localMatrix.postScale(f1, f2);
+		Bitmap localBitmap = Bitmap.createBitmap(paramBitmap, 0, 0, i, j, localMatrix, true);
+		return localBitmap;
 	}
 
-	public static float px2dip(Context context, int px) {
-		return (int) (px / getDensity(context) + 0.5F);
+	public static float px2dip(Context paramContext, int paramInt) {
+		return (int) (paramInt / getDensity(paramContext) + 0.5F);
 	}
 
-	private static DisplayMetrics getDm(Context context) {
+	private static DisplayMetrics getDm(Context paramContext) {
 		if (dm == null) {
-			WindowManager mWm = (WindowManager) context.getSystemService("window");
-			Display display = mWm.getDefaultDisplay();
+			WindowManager localWindowManager = (WindowManager) paramContext.getSystemService("window");
+			Display localDisplay = localWindowManager.getDefaultDisplay();
 			dm = new DisplayMetrics();
-			display.getMetrics(dm);
+			localDisplay.getMetrics(dm);
 		}
 		return dm;
 	}
 
-	public static float getDensity(Context context) {
-		return getDm(context).density;
+	public static float getDensity(Context paramContext) {
+		return getDm(paramContext).density;
 	}
 
-	public static Bitmap getScaleBitmap(Bitmap bitmap, int newWidth, int newHeight) {
-		Bitmap BitmapOrg = bitmap;
-		int width = BitmapOrg.getWidth();
-		int height = BitmapOrg.getHeight();
-		float scaleWidth = newWidth / width;
-		float scaleHeight = newHeight / height;
-		if (scaleWidth <= 0.0F) {
-			scaleWidth = 1.0F;
+	public static Bitmap getScaleBitmap(Bitmap paramBitmap, int paramInt1, int paramInt2) {
+		Bitmap localBitmap = paramBitmap;
+		int i = localBitmap.getWidth();
+		int j = localBitmap.getHeight();
+		float f1 = paramInt1 / i;
+		float f2 = paramInt2 / j;
+		if (f1 <= 0.0F) {
+			f1 = 1.0F;
 		}
-		if (scaleHeight <= 0.0F) {
-			scaleHeight = 1.0F;
+		if (f2 <= 0.0F) {
+			f2 = 1.0F;
 		}
-		Matrix matrix = new Matrix();
-		matrix.postScale(scaleWidth, scaleHeight);
-		return Bitmap.createBitmap(BitmapOrg, 0, 0, width, height, matrix, true);
+		Matrix localMatrix = new Matrix();
+		localMatrix.postScale(f1, f2);
+		return Bitmap.createBitmap(localBitmap, 0, 0, i, j, localMatrix, true);
 	}
 
-	public static Bitmap drawableToBitmap(Drawable drawable) {
-		int width = drawable.getIntrinsicWidth();
-		int height = drawable.getIntrinsicHeight();
-		Bitmap bitmap = Bitmap.createBitmap(width, height, drawable.getOpacity() != -1 ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565);
-		Canvas canvas = new Canvas(bitmap);
-		drawable.setBounds(0, 0, width, height);
-		drawable.draw(canvas);
-		return bitmap;
+	public static Bitmap drawableToBitmap(Drawable paramDrawable) {
+		int i = paramDrawable.getIntrinsicWidth();
+		int j = paramDrawable.getIntrinsicHeight();
+		Bitmap localBitmap = Bitmap.createBitmap(i, j, paramDrawable.getOpacity() != -1 ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565);
+		Canvas localCanvas = new Canvas(localBitmap);
+		paramDrawable.setBounds(0, 0, i, j);
+		paramDrawable.draw(localCanvas);
+		return localBitmap;
 	}
 
-	public static Bitmap getRoundedCornerBitmap(Bitmap bitmap, float roundPx) {
-		Bitmap output = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), Bitmap.Config.ARGB_8888);
-		Canvas canvas = new Canvas(output);
-
-		int color = -12434878;
-		Paint paint = new Paint();
-		Rect rect = new Rect(0, 0, bitmap.getWidth(), bitmap.getHeight());
-		RectF rectF = new RectF(rect);
-
-		paint.setAntiAlias(true);
-		canvas.drawARGB(0, 0, 0, 0);
-		paint.setColor(-12434878);
-		canvas.drawRoundRect(rectF, roundPx, roundPx, paint);
-
-		paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
-		canvas.drawBitmap(bitmap, rect, rect, paint);
-
-		return output;
+	public static Bitmap getRoundedCornerBitmap(Bitmap paramBitmap, float paramFloat) {
+		Bitmap localBitmap = Bitmap.createBitmap(paramBitmap.getWidth(), paramBitmap.getHeight(), Bitmap.Config.ARGB_8888);
+		Canvas localCanvas = new Canvas(localBitmap);
+		Paint localPaint = new Paint();
+		Rect localRect = new Rect(0, 0, paramBitmap.getWidth(), paramBitmap.getHeight());
+		RectF localRectF = new RectF(localRect);
+		localPaint.setAntiAlias(true);
+		localCanvas.drawARGB(0, 0, 0, 0);
+		localPaint.setColor(-12434878);
+		localCanvas.drawRoundRect(localRectF, paramFloat, paramFloat, localPaint);
+		localPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
+		localCanvas.drawBitmap(paramBitmap, localRect, localRect, localPaint);
+		return localBitmap;
 	}
 
-	public static Bitmap createReflectBitmap(int yShift, int reflectedImageHeight, Bitmap originalImage) {
-		int width = originalImage.getWidth();
-		Matrix matrix = new Matrix();
-		Bitmap bitmapWithReflection = Bitmap.createBitmap(width, reflectedImageHeight, Bitmap.Config.ARGB_8888);
-
-		Canvas canvas = new Canvas(bitmapWithReflection);
-
-		matrix.reset();
-		matrix.preScale(1.0F, -1.0F);
-		matrix.postTranslate(0.0F, originalImage.getHeight() + yShift);
-		canvas.drawBitmap(originalImage, matrix, null);
-
-		Paint paint = new Paint();
-		LinearGradient shader = new LinearGradient(0.0F, 0.0F, 0.0F, bitmapWithReflection.getHeight(), -1862270977, 16777215, Shader.TileMode.CLAMP);
-		paint.setShader(shader);
-		paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
-
-		canvas.drawRect(0.0F, 0.0F, width, bitmapWithReflection.getHeight(), paint);
-
-		return bitmapWithReflection;
+	public static Bitmap createReflectBitmap(int paramInt1, int paramInt2, Bitmap paramBitmap) {
+		int i = paramBitmap.getWidth();
+		Matrix localMatrix = new Matrix();
+		Bitmap localBitmap = Bitmap.createBitmap(i, paramInt2, Bitmap.Config.ARGB_8888);
+		Canvas localCanvas = new Canvas(localBitmap);
+		localMatrix.reset();
+		localMatrix.preScale(1.0F, -1.0F);
+		localMatrix.postTranslate(0.0F, paramBitmap.getHeight() + paramInt1);
+		localCanvas.drawBitmap(paramBitmap, localMatrix, null);
+		Paint localPaint = new Paint();
+		LinearGradient localLinearGradient = new LinearGradient(0.0F, 0.0F, 0.0F, localBitmap.getHeight(), -1862270977, 16777215, Shader.TileMode.CLAMP);
+		localPaint.setShader(localLinearGradient);
+		localPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
+		localCanvas.drawRect(0.0F, 0.0F, i, localBitmap.getHeight(), localPaint);
+		return localBitmap;
 	}
 
-	public static Bitmap createReflectBitmap(int reflectedImageHeight, Bitmap originalImage) {
-		int width = originalImage.getWidth();
-		Matrix matrix = new Matrix();
-		Bitmap bitmapWithReflection = Bitmap.createBitmap(width, reflectedImageHeight, Bitmap.Config.ARGB_8888);
-
-		Canvas canvas = new Canvas(bitmapWithReflection);
-
-		matrix.reset();
-		matrix.preScale(1.0F, -1.0F);
-		matrix.postTranslate(0.0F, originalImage.getHeight());
-		canvas.drawBitmap(originalImage, matrix, null);
-
-		Paint paint = new Paint();
-		LinearGradient shader = new LinearGradient(0.0F, 0.0F, 0.0F, bitmapWithReflection.getHeight(), 1895825407, 16777215, Shader.TileMode.CLAMP);
-		paint.setShader(shader);
-		paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
-
-		canvas.drawRect(0.0F, 0.0F, width, bitmapWithReflection.getHeight(), paint);
-
-		return bitmapWithReflection;
+	public static Bitmap createReflectBitmap(int paramInt, Bitmap paramBitmap) {
+		int i = paramBitmap.getWidth();
+		Matrix localMatrix = new Matrix();
+		Bitmap localBitmap = Bitmap.createBitmap(i, paramInt, Bitmap.Config.ARGB_8888);
+		Canvas localCanvas = new Canvas(localBitmap);
+		localMatrix.reset();
+		localMatrix.preScale(1.0F, -1.0F);
+		localMatrix.postTranslate(0.0F, paramBitmap.getHeight());
+		localCanvas.drawBitmap(paramBitmap, localMatrix, null);
+		Paint localPaint = new Paint();
+		LinearGradient localLinearGradient = new LinearGradient(0.0F, 0.0F, 0.0F, localBitmap.getHeight(), 1895825407, 16777215, Shader.TileMode.CLAMP);
+		localPaint.setShader(localLinearGradient);
+		localPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
+		localCanvas.drawRect(0.0F, 0.0F, i, localBitmap.getHeight(), localPaint);
+		return localBitmap;
 	}
 
-	public static Bitmap decodeBitmap(Resources res, int resId, int targetWidth, int targetHeight) {
-		BitmapFactory.Options options = new BitmapFactory.Options();
-		options.inJustDecodeBounds = true;
-		options.inDither = false;
-		BitmapFactory.decodeResource(res, resId, options);
-		return BitmapFactory.decodeResource(res, resId, getScaleOptions(targetWidth, targetHeight, options));
+	public static Bitmap decodeBitmap(Resources paramResources, int paramInt1, int paramInt2, int paramInt3) {
+		BitmapFactory.Options localOptions = new BitmapFactory.Options();
+		localOptions.inJustDecodeBounds = true;
+		localOptions.inDither = false;
+		BitmapFactory.decodeResource(paramResources, paramInt1, localOptions);
+		return BitmapFactory.decodeResource(paramResources, paramInt1, getScaleOptions(paramInt2, paramInt3, localOptions));
 	}
 
-	private static BitmapFactory.Options getScaleOptions(int targetWidth, int targetHeight, BitmapFactory.Options options) {
-		options.inSampleSize = calculateInSampleSize(options, targetWidth, targetHeight);
-		options.inJustDecodeBounds = false;
-		options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-		options.inTempStorage = new byte[16384];
-		options.inPurgeable = true;
-		options.inInputShareable = true;
-		options.inDither = false;
+	private static BitmapFactory.Options getScaleOptions(int paramInt1, int paramInt2, BitmapFactory.Options paramOptions) {
+		paramOptions.inSampleSize = calculateInSampleSize(paramOptions, paramInt1, paramInt2);
+		paramOptions.inJustDecodeBounds = false;
+		paramOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;
+		paramOptions.inTempStorage = new byte[16384];
+		paramOptions.inPurgeable = true;
+		paramOptions.inInputShareable = true;
+		paramOptions.inDither = false;
 		try {
-			BitmapFactory.Options.class.getField("inNativeAlloc").setBoolean(options, true);
+			BitmapFactory.Options.class.getField("inNativeAlloc").setBoolean(paramOptions, true);
 		} catch (Exception localException) {
 		}
-		return options;
+		return paramOptions;
 	}
 
-	public static Bitmap getOverLapImage(Bitmap source, Bitmap faceBitmap, Paint paint) {
-		int targetWidth = source.getWidth();
-		int targetHeight = source.getHeight();
-
-		Bitmap newBitmap = source.copy(Bitmap.Config.RGB_565, true);
-		source.recycle();
-		source = null;
-		Canvas canvas = new Canvas(newBitmap);
-
-		int sourceWidth = faceBitmap.getWidth();
-		int sourceHeight = faceBitmap.getHeight();
-
-		float scaleWidth = targetWidth / sourceWidth;
-		float scaleHeight = targetHeight / sourceHeight;
-		Matrix matrix = new Matrix();
-		matrix.setScale(scaleWidth, scaleHeight);
-		canvas.drawBitmap(faceBitmap, matrix, paint);
-
-		return newBitmap;
+	public static Bitmap getOverLapImage(Bitmap paramBitmap1, Bitmap paramBitmap2, Paint paramPaint) {
+		int i = paramBitmap1.getWidth();
+		int j = paramBitmap1.getHeight();
+		Bitmap localBitmap = paramBitmap1.copy(Bitmap.Config.RGB_565, true);
+		paramBitmap1.recycle();
+		paramBitmap1 = null;
+		Canvas localCanvas = new Canvas(localBitmap);
+		int k = paramBitmap2.getWidth();
+		int m = paramBitmap2.getHeight();
+		float f1 = i / k;
+		float f2 = j / m;
+		Matrix localMatrix = new Matrix();
+		localMatrix.setScale(f1, f2);
+		localCanvas.drawBitmap(paramBitmap2, localMatrix, paramPaint);
+		return localBitmap;
 	}
 
-	public static int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
-		int height = options.outHeight;
-		int width = options.outWidth;
-		int inSampleSize = 1;
-
-		if ((height > reqHeight) || (width > reqWidth)) {
-			int heightRatio = Math.round(height / reqHeight);
-			int widthRatio = Math.round(width / reqWidth);
-			float totalPixels = width * height;
-			float totalReqPixelsCap = reqWidth * reqHeight * 2;
-
-			while (totalPixels / (inSampleSize * inSampleSize) > totalReqPixelsCap) {
-				inSampleSize++;
+	public static int calculateInSampleSize(BitmapFactory.Options paramOptions, int paramInt1, int paramInt2) {
+		int i = paramOptions.outHeight;
+		int j = paramOptions.outWidth;
+		int k = 1;
+		if ((i > paramInt2) || (j > paramInt1)) {
+			int m = Math.round(i / paramInt2);
+			int n = Math.round(j / paramInt1);
+			float f1 = j * i;
+			float f2 = paramInt1 * paramInt2 * 2;
+			while (f1 / (k * k) > f2) {
+				k++;
 			}
 		}
-		return inSampleSize;
+		return k;
 	}
 }

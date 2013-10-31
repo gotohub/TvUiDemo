@@ -133,9 +133,8 @@ public class PageFocusGridViewDemo extends Activity implements ScrollListener {
 		Log.w(TAG, "=============startScroll=== mIndex = " + mIndex);
 		FocusedGridView gridview = (FocusedGridView) ((LinearLayout) mAdapter.mPageViews.get(mIndex)).getChildAt(0);
 		FocusedGridView LastGridview = (FocusedGridView)((LinearLayout) mAdapter.mPageViews.get(mLastIndex)).getChildAt(0);
+		
 
-		gridview.setOutsideSroll(true);
-		LastGridview.setOutsideSroll(true);
 	}
 
 	@Override
@@ -150,8 +149,6 @@ public class PageFocusGridViewDemo extends Activity implements ScrollListener {
 		FocusedGridView gridview = (FocusedGridView) ((LinearLayout) mAdapter.mPageViews.get(mIndex)).getChildAt(0);
 		FocusedGridView LastGridview = (FocusedGridView) ((LinearLayout) mAdapter.mPageViews.get(mLastIndex)).getChildAt(0);
 
-		gridview.setOutsideSroll(false);
-		LastGridview.setOutsideSroll(false);
 	}
 
 }

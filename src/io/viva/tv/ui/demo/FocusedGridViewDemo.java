@@ -1,14 +1,13 @@
 package io.viva.tv.ui.demo;
 
+import io.viva.tv.app.widget.FocusedBasePositionManager;
 import io.viva.tv.app.widget.FocusedGridView;
-import io.viva.tv.app.widget.FocusedGridView.FocusItemSelectedListener;
 import io.viva.tv.ui.demo.adapter.FocusedGridViewAdapter;
 import io.viva.tv.ui.demo.view.MyLinearLayout;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.AdapterView;
 
 public class FocusedGridViewDemo extends Activity {
 	
@@ -39,10 +38,11 @@ public class FocusedGridViewDemo extends Activity {
 		
 		mGridView.setAdapter(mAdapter);
 		mGridView.setSelected(true);
-		mGridView.setOnItemSelectedListener(new FocusItemSelectedListener() {
+		mGridView.setOnItemSelectedListener(new FocusedBasePositionManager.FocusItemSelectedListener() {
+
 			@Override
-			public void onItemSelected(View v, int position, boolean isSelected, AdapterView parent) {
-				if (isSelected) {
+			public void onItemSelected(View v, int paramInt, boolean paramBoolean, View paramView2) {
+				if (paramBoolean) {
 					if (v instanceof MyLinearLayout) {
 						mAdapter.setHeaderViewFocus(true);
 					}

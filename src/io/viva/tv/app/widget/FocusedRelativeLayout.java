@@ -11,6 +11,7 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.SoundEffectConstants;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
@@ -24,9 +25,7 @@ public class FocusedRelativeLayout extends RelativeLayout implements FocusedBase
 	private static final int SCROLL_DURATION = 100;
 	private long KEY_INTERVEL = 20L;
 	private long mKeyTime = 0L;
-
 	public int mIndex = -1;
-
 	private boolean mOutsieScroll = false;
 	private boolean mInit = false;
 	private HotScroller mScroller;
@@ -36,55 +35,83 @@ public class FocusedRelativeLayout extends RelativeLayout implements FocusedBase
 	private int mStartX;
 	private long mScrollTime = 0L;
 	private int mHorizontalMode = -1;
-	FocusedLayoutPositionManager mPositionManager;
-	private Map<View, NodeInfo> mNodeMap = new HashMap<View, NodeInfo>();
+	private FocusedBasePositionManager.FocusItemSelectedListener mOnItemSelectedListener = null;
+	private FocusedLayoutPositionManager mPositionManager;
+	private OnScrollListener mScrollerListener = null;
+	private int mLastScrollState = 0;
+	private Map<View, NodeInfo> mNodeMap = new HashMap();
+	boolean isKeyDown = false;
 
-	public void setManualPadding(int left, int top, int right, int bottom) {
-		this.mPositionManager.setManualPadding(left, top, right, bottom);
+	public void setManualPadding(int paramInt1, int paramInt2, int paramInt3, int paramInt4) {
+		this.mPositionManager.setManualPadding(paramInt1, paramInt2, paramInt3, paramInt4);
 	}
 
-	public void setFrameRate(int rate) {
-		this.mPositionManager.setFrameRate(rate);
+	public void setFrameRate(int paramInt) {
+		this.mPositionManager.setFrameRate(paramInt);
 	}
 
-	public void setScaleMode(int mode) {
-		this.mPositionManager.setScaleMode(mode);
+	public void setFrameRate(int paramInt1, int paramInt2) {
+		this.mPositionManager.setFrameRate(paramInt1, paramInt2);
 	}
 
-	public void setFocusResId(int focusResId) {
-		this.mPositionManager.setFocusResId(focusResId);
+	public void setScaleMode(int paramInt) {
+		this.mPositionManager.setScaleMode(paramInt);
 	}
 
-	public void setFocusShadowResId(int focusResId) {
-		this.mPositionManager.setFocusShadowResId(focusResId);
+	public void setScale(boolean paramBoolean) {
+		this.mPositionManager.setScale(paramBoolean);
 	}
 
-	public void setItemScaleValue(float scaleXValue, float scaleYValue) {
-		this.mPositionManager.setItemScaleValue(scaleXValue, scaleYValue);
+	public void setFocusResId(int paramInt) {
+		this.mPositionManager.setFocusResId(paramInt);
 	}
 
-	public void setItemScaleFixedX(int x) {
-		this.mPositionManager.setItemScaleFixedX(x);
+	public void setFocusShadowResId(int paramInt) {
+		this.mPositionManager.setFocusShadowResId(paramInt);
 	}
 
-	public void setItemScaleFixedY(int y) {
-		this.mPositionManager.setItemScaleFixedY(y);
+	public void setItemScaleValue(float paramFloat1, float paramFloat2) {
+		this.mPositionManager.setItemScaleValue(paramFloat1, paramFloat2);
 	}
 
-	public void setFocusMode(int mode) {
-		this.mPositionManager.setFocusMode(mode);
+	public void setScrollerListener(OnScrollListener paramOnScrollListener) {
+		this.mScrollerListener = paramOnScrollListener;
 	}
 
-	public void setFocusViewId(int id) {
+	public void setOnItemSelectedListener(FocusedBasePositionManager.FocusItemSelectedListener paramFocusItemSelectedListener) {
+		this.mOnItemSelectedListener = paramFocusItemSelectedListener;
 	}
 
-	public void setHorizontalMode(int mode) {
-		this.mHorizontalMode = mode;
+	private void performItemSelect(View paramView, boolean paramBoolean) {
+		if (this.mOnItemSelectedListener != null)
+			this.mOnItemSelectedListener.onItemSelected(paramView, -1, paramBoolean, this);
 	}
 
-	private void setInit(boolean isInit) {
+	public void setOnItemClickListener(AdapterView.OnItemClickListener paramOnItemClickListener) {
+	}
+
+	public void setItemScaleFixedX(int paramInt) {
+		this.mPositionManager.setItemScaleFixedX(paramInt);
+	}
+
+	public void setItemScaleFixedY(int paramInt) {
+		this.mPositionManager.setItemScaleFixedY(paramInt);
+	}
+
+	public void setFocusMode(int paramInt) {
+		this.mPositionManager.setFocusMode(paramInt);
+	}
+
+	public void setFocusViewId(int paramInt) {
+	}
+
+	public void setHorizontalMode(int paramInt) {
+		this.mHorizontalMode = paramInt;
+	}
+
+	private void setInit(boolean paramBoolean) {
 		synchronized (this) {
-			this.mInit = isInit;
+			this.mInit = paramBoolean;
 		}
 	}
 
@@ -94,80 +121,71 @@ public class FocusedRelativeLayout extends RelativeLayout implements FocusedBase
 		}
 	}
 
-	public void setViewRight(int right) {
-		this.mViewRight = right;
+	public void setViewRight(int paramInt) {
+		this.mViewRight = paramInt;
 	}
 
-	public void setViewLeft(int right) {
-		this.mViewLeft = right;
+	public void setViewLeft(int paramInt) {
+		this.mViewLeft = paramInt;
 	}
 
-	public void setOutsideSroll(boolean scroll) {
-		Log.d("FocusedRelativeLayout", "setOutsideSroll scroll = " + scroll + ", this = " + this);
+	public void setOutsideSroll(boolean paramBoolean) {
+		Log.d("FocusedRelativeLayout", "setOutsideSroll scroll = " + paramBoolean + ", this = " + this);
 		this.mScrollTime = System.currentTimeMillis();
-		this.mOutsieScroll = scroll;
+		this.mOutsieScroll = paramBoolean;
 	}
 
-	public FocusedRelativeLayout(Context contxt) {
-		super(contxt);
+	public FocusedRelativeLayout(Context paramContext) {
+		super(paramContext);
 		setChildrenDrawingOrderEnabled(true);
-		this.mScroller = new HotScroller(contxt, new DecelerateInterpolator());
-		this.mScreenWidth = contxt.getResources().getDisplayMetrics().widthPixels;
-
-		this.mPositionManager = new FocusedLayoutPositionManager(contxt, this);
+		this.mScroller = new HotScroller(paramContext, new DecelerateInterpolator());
+		this.mScreenWidth = paramContext.getResources().getDisplayMetrics().widthPixels;
+		this.mPositionManager = new FocusedLayoutPositionManager(paramContext, this);
 	}
 
-	public FocusedRelativeLayout(Context contxt, AttributeSet attrs) {
-		super(contxt, attrs);
+	public FocusedRelativeLayout(Context paramContext, AttributeSet paramAttributeSet) {
+		super(paramContext, paramAttributeSet);
 		setChildrenDrawingOrderEnabled(true);
-		this.mScroller = new HotScroller(contxt, new DecelerateInterpolator());
-		this.mScreenWidth = contxt.getResources().getDisplayMetrics().widthPixels;
-
-		this.mPositionManager = new FocusedLayoutPositionManager(contxt, this);
+		this.mScroller = new HotScroller(paramContext, new DecelerateInterpolator());
+		this.mScreenWidth = paramContext.getResources().getDisplayMetrics().widthPixels;
+		this.mPositionManager = new FocusedLayoutPositionManager(paramContext, this);
 	}
 
-	public FocusedRelativeLayout(Context contxt, AttributeSet attrs, int defStyle) {
-		super(contxt, attrs, defStyle);
+	public FocusedRelativeLayout(Context paramContext, AttributeSet paramAttributeSet, int paramInt) {
+		super(paramContext, paramAttributeSet, paramInt);
 		setChildrenDrawingOrderEnabled(true);
-		this.mScroller = new HotScroller(contxt, new DecelerateInterpolator());
-		this.mScreenWidth = contxt.getResources().getDisplayMetrics().widthPixels;
-
-		this.mPositionManager = new FocusedLayoutPositionManager(contxt, this);
+		this.mScroller = new HotScroller(paramContext, new DecelerateInterpolator());
+		this.mScreenWidth = paramContext.getResources().getDisplayMetrics().widthPixels;
+		this.mPositionManager = new FocusedLayoutPositionManager(paramContext, this);
 	}
 
-	protected int getChildDrawingOrder(int childCount, int i) {
-		int selectedIndex = this.mIndex;
-		if (selectedIndex < 0) {
-			return i;
-		}
-
-		if (i < selectedIndex)
-			return i;
-		if (i >= selectedIndex) {
-			return childCount - 1 - i + selectedIndex;
-		}
-		return i;
+	protected int getChildDrawingOrder(int paramInt1, int paramInt2) {
+		int i = this.mIndex;
+		if (i < 0)
+			return paramInt2;
+		if (paramInt2 < i)
+			return paramInt2;
+		if (paramInt2 >= i)
+			return paramInt1 - 1 - paramInt2 + i;
+		return paramInt2;
 	}
 
 	private synchronized void init() {
 		if ((hasFocus()) && (!this.mOutsieScroll) && (!isInit())) {
-			int[] location = new int[2];
-			int minLeft = 65536;
-			for (int index = 0; index < getChildCount(); index++) {
-				View child = getChildAt(index);
-				if (!this.mNodeMap.containsKey(child)) {
-					NodeInfo info = new NodeInfo();
-					info.index = index;
-					this.mNodeMap.put(child, info);
+			int[] arrayOfInt = new int[2];
+			int i = 65536;
+			for (int j = 0; j < getChildCount(); j++) {
+				View localView = getChildAt(j);
+				if (!this.mNodeMap.containsKey(localView)) {
+					NodeInfo localNodeInfo = new NodeInfo();
+					localNodeInfo.index = j;
+					this.mNodeMap.put(localView, localNodeInfo);
 				}
-
-				child.getLocationOnScreen(location);
-				if (location[0] < minLeft) {
-					minLeft = location[0];
-				}
+				localView.getLocationOnScreen(arrayOfInt);
+				if (arrayOfInt[0] < i)
+					i = arrayOfInt[0];
 			}
-
-			this.mStartX = minLeft;
+			this.mStartX = i;
 			Log.d("FocusedRelativeLayout", "init mStartX = " + this.mStartX);
 			setInit(true);
 		}
@@ -177,184 +195,182 @@ public class FocusedRelativeLayout extends RelativeLayout implements FocusedBase
 		this.mNodeMap.clear();
 	}
 
-	public void dispatchDraw(Canvas canvas) {
+	public void dispatchDraw(Canvas paramCanvas) {
 		Log.i("FocusedRelativeLayout", "dispatchDraw");
-		super.dispatchDraw(canvas);
-		if (getVisibility() == VISIBLE)
-			this.mPositionManager.drawFrame(canvas);
+		super.dispatchDraw(paramCanvas);
+		if (0 == getVisibility())
+			this.mPositionManager.drawFrame(paramCanvas);
 	}
 
-	protected void onFocusChanged(boolean gainFocus, int direction, Rect previouslyFocusedRect) {
-		Log.d("FocusedRelativeLayout", "onFocusChanged this = " + this + ", mScreenWidth = " + this.mScreenWidth + ", mIndex = " + this.mIndex + ", gainFocus = " + gainFocus + ", child count = " + getChildCount());
+	protected void onFocusChanged(boolean paramBoolean, int paramInt, Rect paramRect) {
+		Log.d("FocusedRelativeLayout", "onFocusChanged this = " + this + ", mScreenWidth = " + this.mScreenWidth + ", mIndex = " + this.mIndex + ", gainFocus = " + paramBoolean
+				+ ", child count = " + getChildCount());
 		synchronized (this) {
 			this.mKeyTime = System.currentTimeMillis();
 		}
-
-		this.mPositionManager.setFocus(gainFocus);
-
+		this.mPositionManager.setFocus(paramBoolean);
 		this.mPositionManager.setTransAnimation(false);
 		this.mPositionManager.setNeedDraw(true);
-		this.mPositionManager.setState(FocusedLayoutPositionManager.STATE_DRAWING);
-		if (!gainFocus) {
+		this.mPositionManager.setState(1);
+		if (!paramBoolean) {
 			this.mPositionManager.drawFrame(null);
 			this.mPositionManager.setFocusDrawableVisible(false, true);
+			invalidate();
 		} else {
 			if (-1 == this.mIndex) {
 				this.mIndex = 0;
 				this.mPositionManager.setSelectedView(getSelectedView());
 			}
-
 			View v = getSelectedView();
 			if ((v instanceof ScalePostionInterface)) {
-				ScalePostionInterface face = (ScalePostionInterface) v;
-				this.mPositionManager.setScaleCurrentView(face.getIfScale());
+				ScalePostionInterface localScalePostionInterface = (ScalePostionInterface) v;
+				this.mPositionManager.setScaleCurrentView(localScalePostionInterface.getIfScale());
 			}
-
 			this.mPositionManager.setLastSelectedView(null);
 			invalidate();
 		}
 	}
 
-	public void getFocusedRect(Rect r) {
-		View item = getSelectedView();
-		if (item != null) {
-			item.getFocusedRect(r);
-			offsetDescendantRectToMyCoords(item, r);
-			Log.d("FocusedRelativeLayout", "getFocusedRect r = " + r);
+	public void getFocusedRect(Rect paramRect) {
+		View localView = getSelectedView();
+		if (localView != null) {
+			localView.getFocusedRect(paramRect);
+			offsetDescendantRectToMyCoords(localView, paramRect);
+			Log.d("FocusedRelativeLayout", "getFocusedRect r = " + paramRect);
 			return;
 		}
-		super.getFocusedRect(r);
+		super.getFocusedRect(paramRect);
 	}
 
 	public View getSelectedView() {
-		int indexOfView = this.mIndex;
-		View selectedView = getChildAt(indexOfView);
-		return selectedView;
+		int i = this.mIndex;
+		View localView = getChildAt(i);
+		return localView;
 	}
 
-	public boolean onKeyUp(int keyCode, KeyEvent event) {
-		if ((23 == keyCode) && (getSelectedView() != null)) {
+	public boolean onKeyUp(int paramInt, KeyEvent paramKeyEvent) {
+		if ((23 == paramInt) && (this.isKeyDown) && (getSelectedView() != null))
 			getSelectedView().performClick();
-		}
-
-		return super.onKeyUp(keyCode, event);
+		this.isKeyDown = false;
+		return super.onKeyUp(paramInt, paramKeyEvent);
 	}
 
-	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		synchronized (this) {
-			if ((System.currentTimeMillis() - this.mKeyTime <= this.KEY_INTERVEL) || (this.mPositionManager.getState() == 1) || (System.currentTimeMillis() - this.mScrollTime < 100L) || (!this.mScroller.isFinished())) {
-				Log.d("FocusedRelativeLayout", "onKeyDown mAnimationTime = " + this.mKeyTime + " -- current time = " + System.currentTimeMillis());
-				return true;
-			}
-			this.mKeyTime = System.currentTimeMillis();
-		}
-
-		if (!isInit()) {
-			init();
-			return true;
-		}
-
-		View lastSelectedView = getSelectedView();
-		NodeInfo nodeInfo = (NodeInfo) this.mNodeMap.get(lastSelectedView);
-		View v = null;
-		int direction;
-		switch (keyCode) {
-		case KeyEvent.KEYCODE_DPAD_LEFT:
-			if (nodeInfo.fromLeft != null)
-				v = nodeInfo.fromLeft;
-			else {
-				v = lastSelectedView.focusSearch(17);
-			}
-			direction = 17;
-			break;
-		case KeyEvent.KEYCODE_DPAD_RIGHT:
-			if (nodeInfo.fromRight != null)
-				v = nodeInfo.fromRight;
-			else {
-				v = lastSelectedView.focusSearch(66);
-			}
-			direction = 66;
-			break;
-		case KeyEvent.KEYCODE_DPAD_DOWN:
-			if (nodeInfo.fromDown != null)
-				v = nodeInfo.fromDown;
-			else {
-				v = lastSelectedView.focusSearch(130);
-			}
-			direction = 130;
-			break;
-		case KeyEvent.KEYCODE_DPAD_UP:
-			if (nodeInfo.fromUp != null)
-				v = nodeInfo.fromUp;
-			else {
-				v = lastSelectedView.focusSearch(33);
-			}
-			direction = 33;
-			break;
-		default:
-			return super.onKeyDown(keyCode, event);
-		}
-		Log.d("FocusedRelativeLayout", "onKeyDown v = " + v);
-		if ((v != null) && (this.mNodeMap.containsKey(v))) {
-			NodeInfo info = (NodeInfo) this.mNodeMap.get(v);
-			View selectedView = getSelectedView();
-			if (selectedView != null) {
-				selectedView.setSelected(false);
-				View.OnFocusChangeListener listener = selectedView.getOnFocusChangeListener();
-				if (listener != null) {
-					listener.onFocusChange(selectedView, false);
-				}
-			}
-
-			this.mIndex = info.index;
-
-			selectedView = getSelectedView();
-			if (selectedView != null) {
-				selectedView.setSelected(true);
-				View.OnFocusChangeListener listener = selectedView.getOnFocusChangeListener();
-				if (listener != null) {
-					listener.onFocusChange(selectedView, true);
-				}
-			}
-
-			switch (keyCode) {
-			case 21:
-				info.fromRight = lastSelectedView;
-				break;
-			case 22:
-				info.fromLeft = lastSelectedView;
-				break;
-			case 20:
-				info.fromUp = lastSelectedView;
-				break;
-			case 19:
-				info.fromDown = lastSelectedView;
-			}
-
-			boolean isScale = true;
-
-			if ((selectedView instanceof ScalePostionInterface)) {
-				ScalePostionInterface inter = (ScalePostionInterface) selectedView;
-				isScale = inter.getIfScale();
-			}
-
-			this.mPositionManager.setSelectedView(getSelectedView());
-			this.mPositionManager.computeScaleXY();
-			this.mPositionManager.setScaleCurrentView(isScale);
-			horizontalScroll();
-			this.mPositionManager.setTransAnimation(true);
-			this.mPositionManager.setNeedDraw(true);
-			this.mPositionManager.setState(1);
-			invalidate();
-		} else {
-			Log.w("FocusedRelativeLayout", "onKeyDown select view is null");
-			playSoundEffect(SoundEffectConstants.getContantForFocusDirection(direction));
-			return super.onKeyDown(keyCode, event);
-		}
-
-		playSoundEffect(SoundEffectConstants.getContantForFocusDirection(direction));
-		return true;
-	}
+	public boolean onKeyDown(int paramInt, KeyEvent paramKeyEvent)
+  {
+    if (paramKeyEvent.getRepeatCount() == 0)
+      this.isKeyDown = true;
+    synchronized (this)
+    {
+      if ((System.currentTimeMillis() - this.mKeyTime <= this.KEY_INTERVEL) || (this.mPositionManager.getState() == 1) || (System.currentTimeMillis() - this.mScrollTime < 100L) || (!this.mScroller.isFinished()))
+      {
+        Log.d("FocusedRelativeLayout", "onKeyDown mAnimationTime = " + this.mKeyTime + " -- current time = " + System.currentTimeMillis());
+        return true;
+      }
+      this.mKeyTime = System.currentTimeMillis();
+    }
+    if (!isInit())
+    {
+      init();
+      return true;
+    }
+    View v = getSelectedView();
+    NodeInfo localNodeInfo1 = (NodeInfo)this.mNodeMap.get(v);
+    View localView = null;
+    int i;
+    switch (paramInt)
+    {
+    case 21:
+      if (localNodeInfo1.fromLeft != null)
+        localView = localNodeInfo1.fromLeft;
+      else
+        localView = ((View)v).focusSearch(17);
+      i = 17;
+      break;
+    case 22:
+      if (localNodeInfo1.fromRight != null)
+        localView = localNodeInfo1.fromRight;
+      else
+        localView = ((View)v).focusSearch(66);
+      i = 66;
+      break;
+    case 20:
+      if (localNodeInfo1.fromDown != null)
+        localView = localNodeInfo1.fromDown;
+      else
+        localView = ((View)v).focusSearch(130);
+      i = 130;
+      break;
+    case 19:
+      if (localNodeInfo1.fromUp != null)
+        localView = localNodeInfo1.fromUp;
+      else
+        localView = ((View)v).focusSearch(33);
+      i = 33;
+      break;
+    default:
+      return super.onKeyDown(paramInt, paramKeyEvent);
+    }
+    Log.d("FocusedRelativeLayout", "onKeyDown v = " + localView);
+    if ((localView != null) && (this.mNodeMap.containsKey(localView)))
+    {
+      NodeInfo localNodeInfo2 = (NodeInfo)this.mNodeMap.get(localView);
+      this.mIndex = localNodeInfo2.index;
+      if (v != null)
+      {
+        ((View)v).setSelected(false);
+        performItemSelect((View)v, false);
+        View.OnFocusChangeListener localObject2 = ((View)v).getOnFocusChangeListener();
+        if (localObject2 != null)
+          ((View.OnFocusChangeListener)localObject2).onFocusChange((View)v, false);
+      }
+      Object localObject2 = getSelectedView();
+      localObject2 = getSelectedView();
+      if (localObject2 != null)
+      {
+        ((View)localObject2).setSelected(true);
+        performItemSelect((View)localObject2, true);
+        View.OnFocusChangeListener localOnFocusChangeListener = ((View)localObject2).getOnFocusChangeListener();
+        if (localOnFocusChangeListener != null)
+          localOnFocusChangeListener.onFocusChange((View)localObject2, true);
+      }
+      switch (paramInt)
+      {
+      case 21:
+        localNodeInfo2.fromRight = ((View)v);
+        break;
+      case 22:
+        localNodeInfo2.fromLeft = ((View)v);
+        break;
+      case 20:
+        localNodeInfo2.fromUp = ((View)v);
+        break;
+      case 19:
+        localNodeInfo2.fromDown = ((View)v);
+      }
+      boolean bool = true;
+      if ((localObject2 instanceof ScalePostionInterface))
+      {
+        ScalePostionInterface localScalePostionInterface = (ScalePostionInterface)localObject2;
+        bool = localScalePostionInterface.getIfScale();
+      }
+      this.mPositionManager.setSelectedView(getSelectedView());
+      this.mPositionManager.computeScaleXY();
+      this.mPositionManager.setScaleCurrentView(bool);
+      horizontalScroll();
+      this.mPositionManager.setTransAnimation(true);
+      this.mPositionManager.setNeedDraw(true);
+      this.mPositionManager.setState(1);
+      invalidate();
+    }
+    else
+    {
+      Log.w("FocusedRelativeLayout", "onKeyDown select view is null");
+      playSoundEffect(SoundEffectConstants.getContantForFocusDirection(i));
+      return super.onKeyDown(paramInt, paramKeyEvent);
+    }
+    playSoundEffect(SoundEffectConstants.getContantForFocusDirection(i));
+    return true;
+  }
 
 	private void horizontalScroll() {
 		if (1 == this.mHorizontalMode)
@@ -364,104 +380,100 @@ public class FocusedRelativeLayout extends RelativeLayout implements FocusedBase
 	}
 
 	void scrollFull() {
-		int[] location = new int[2];
-		getSelectedView().getLocationOnScreen(location);
-		int left = location[0];
-		int right = location[0] + getSelectedView().getWidth();
-		Log.d("FocusedRelativeLayout", "scrollFull left = " + left + ", right = " + right + ", scaleX = " + this.mPositionManager.getItemScaleXValue());
-		int imgW = getSelectedView().getWidth();
-		left = (int) (left + (1.0D - this.mPositionManager.getItemScaleXValue()) * imgW / 2.0D);
-		right = (int) (left + imgW * this.mPositionManager.getItemScaleXValue());
-
-		Log.d("FocusedRelativeLayout", "scrollFull scaled left = " + left + ", scaled right = " + right);
-		getLocationOnScreen(location);
-		if ((right - this.mScreenWidth > 3) && (!this.mOutsieScroll)) {
-			int dx = left - this.mStartX - this.mViewLeft;
-			Log.d("FocusedRelativeLayout", "scrollFull to right dx = " + dx + ", mStartX = " + this.mStartX + ", mScreenWidth = " + this.mScreenWidth + ", left = " + left);
-			if (dx + this.mScroller.getFinalX() > location[0] + getWidth()) {
-				dx = location[0] + getWidth() - this.mScroller.getFinalX();
-			}
-			int duration = dx * 100 / 300;
-			smoothScrollBy(dx, duration);
+		int[] arrayOfInt = new int[2];
+		getSelectedView().getLocationOnScreen(arrayOfInt);
+		int i = arrayOfInt[0];
+		int j = arrayOfInt[0] + getSelectedView().getWidth();
+		Log.d("FocusedRelativeLayout", "scrollFull left = " + i + ", right = " + j + ", scaleX = " + this.mPositionManager.getItemScaleXValue());
+		int k = getSelectedView().getWidth();
+		i = (int) (i + (1.0D - this.mPositionManager.getItemScaleXValue()) * k / 2.0D);
+		j = (int) (i + k * this.mPositionManager.getItemScaleXValue());
+		Log.d("FocusedRelativeLayout", "scrollFull scaled left = " + i + ", scaled right = " + j);
+		getLocationOnScreen(arrayOfInt);
+		int m;
+		int n;
+		if ((j - this.mScreenWidth > 3) && (!this.mOutsieScroll)) {
+			m = i - this.mStartX - this.mViewLeft;
+			Log.d("FocusedRelativeLayout", "scrollFull to right dx = " + m + ", mStartX = " + this.mStartX + ", mScreenWidth = " + this.mScreenWidth + ", left = " + i);
+			if (m + this.mScroller.getFinalX() > arrayOfInt[0] + getWidth())
+				m = arrayOfInt[0] + getWidth() - this.mScroller.getFinalX();
+			n = m * 100 / 300;
+			smoothScrollBy(m, n);
 			return;
 		}
-
 		Log.d("FocusedRelativeLayout", "scroll conrtainer left = " + this.mStartX);
-		if ((this.mStartX - left > 3) && (!this.mOutsieScroll)) {
-			int dx = right - this.mScreenWidth;
-			Log.d("FocusedRelativeLayout", "scrollFull to left dx = " + dx + ", mStartX = " + this.mStartX + ", currX = " + this.mScroller.getCurrX() + ", mScreenWidth = " + this.mScreenWidth + ", left = " + left);
-			if (this.mScroller.getCurrX() < Math.abs(dx)) {
-				dx = -this.mScroller.getCurrX();
-			}
-			int duration = -dx * 100 / 300;
-			smoothScrollBy(dx, duration);
+		if ((this.mStartX - i > 3) && (!this.mOutsieScroll)) {
+			m = j - this.mScreenWidth;
+			Log.d("FocusedRelativeLayout", "scrollFull to left dx = " + m + ", mStartX = " + this.mStartX + ", currX = " + this.mScroller.getCurrX() + ", mScreenWidth = "
+					+ this.mScreenWidth + ", left = " + i);
+			if (this.mScroller.getCurrX() < Math.abs(m))
+				m = -this.mScroller.getCurrX();
+			n = -m * 100 / 300;
+			smoothScrollBy(m, n);
 		}
 	}
 
 	void scrollSingel() {
-		int[] location = new int[2];
-		getSelectedView().getLocationOnScreen(location);
-		int left = location[0];
-		int right = location[0] + getSelectedView().getWidth();
-		int imgW = getSelectedView().getWidth();
-		left = (int) (left + (1.0D - this.mPositionManager.getItemScaleXValue()) * imgW / 2.0D);
-		right = (int) (left + imgW * this.mPositionManager.getItemScaleXValue());
-
-		Log.d("FocusedRelativeLayout", "scroll left = " + location[0] + ", right = " + right);
-		if ((right >= this.mScreenWidth) && (!this.mOutsieScroll)) {
-			int dx = right - this.mScreenWidth + this.mViewRight;
-
-			smoothScrollBy(dx, 100);
+		int[] arrayOfInt = new int[2];
+		getSelectedView().getLocationOnScreen(arrayOfInt);
+		int i = arrayOfInt[0];
+		int j = arrayOfInt[0] + getSelectedView().getWidth();
+		int k = getSelectedView().getWidth();
+		i = (int) (i + (1.0D - this.mPositionManager.getItemScaleXValue()) * k / 2.0D);
+		j = (int) (i + k * this.mPositionManager.getItemScaleXValue());
+		Log.d("FocusedRelativeLayout", "scroll left = " + arrayOfInt[0] + ", right = " + j);
+		int m;
+		if ((j >= this.mScreenWidth) && (!this.mOutsieScroll)) {
+			m = j - this.mScreenWidth + this.mViewRight;
+			smoothScrollBy(m, 100);
 			return;
 		}
-		getLocationOnScreen(location);
+		getLocationOnScreen(arrayOfInt);
 		Log.d("FocusedRelativeLayout", "scroll conrtainer left = " + this.mStartX);
-		if ((left < this.mStartX) && (!this.mOutsieScroll)) {
-			int dx = left - this.mStartX;
-			if (this.mScroller.getCurrX() > Math.abs(dx))
-				smoothScrollBy(dx, 100);
+		if ((i < this.mStartX) && (!this.mOutsieScroll)) {
+			m = i - this.mStartX;
+			if (this.mScroller.getCurrX() > Math.abs(m))
+				smoothScrollBy(m, 100);
 			else
 				smoothScrollBy(-this.mScroller.getCurrX(), 100);
 		}
 	}
 
-	private boolean containView(View v) {
-		Rect containerRect = new Rect();
-		Rect viewRect = new Rect();
-
-		getGlobalVisibleRect(containerRect);
-		v.getGlobalVisibleRect(viewRect);
-		if ((containerRect.left <= viewRect.left) && (containerRect.right >= viewRect.right) && (containerRect.top <= viewRect.top) && (containerRect.bottom >= viewRect.bottom)) {
-			return true;
-		}
-
-		return false;
+	private boolean containView(View paramView) {
+		Rect localRect1 = new Rect();
+		Rect localRect2 = new Rect();
+		getGlobalVisibleRect(localRect1);
+		paramView.getGlobalVisibleRect(localRect2);
+		return (localRect1.left <= localRect2.left) && (localRect1.right >= localRect2.right) && (localRect1.top <= localRect2.top) && (localRect1.bottom >= localRect2.bottom);
 	}
 
-	public void smoothScrollTo(int fx, int duration) {
-		int dx = fx - this.mScroller.getFinalX();
-		smoothScrollBy(dx, duration);
+	public void smoothScrollTo(int paramInt1, int paramInt2) {
+		int i = paramInt1 - this.mScroller.getFinalX();
+		smoothScrollBy(i, paramInt2);
 	}
 
-	public void smoothScrollBy(int dx, int duration) {
-		Log.w("FocusedRelativeLayout", "smoothScrollBy dx = " + dx);
-		this.mScroller.startScroll(this.mScroller.getFinalX(), this.mScroller.getFinalY(), dx, this.mScroller.getFinalY(), duration);
+	public void smoothScrollBy(int paramInt1, int paramInt2) {
+		Log.w("FocusedRelativeLayout", "smoothScrollBy dx = " + paramInt1);
+		this.mScroller.startScroll(this.mScroller.getFinalX(), this.mScroller.getFinalY(), paramInt1, this.mScroller.getFinalY(), paramInt2);
+		reportScrollStateChange(2);
 		invalidate();
 	}
 
+	void reportScrollStateChange(int paramInt) {
+		if ((paramInt != this.mLastScrollState) && (this.mScrollerListener != null)) {
+			this.mLastScrollState = paramInt;
+			this.mScrollerListener.onScrollStateChanged(this, paramInt);
+		}
+	}
+
 	private boolean checkFocusPosition() {
-		if ((this.mPositionManager.getCurrentRect() == null) || (!hasFocus())) {
+		if ((null == this.mPositionManager.getCurrentRect()) || (!hasFocus()))
 			return false;
-		}
-
-		Rect dstRect = this.mPositionManager.getDstRectAfterScale(true);
-		Log.d("FocusedRelativeLayout", "checkFocusPosition this.mPositionManager.getCurrentRect() = " + this.mPositionManager.getCurrentRect() + ", this.mPositionManager.getDstRectAfterScale(true) = " + this.mPositionManager.getDstRectAfterScale(true));
-		if ((Math.abs(dstRect.left - this.mPositionManager.getCurrentRect().left) > 5) || (Math.abs(dstRect.right - this.mPositionManager.getCurrentRect().right) > 5) || (Math.abs(dstRect.top - this.mPositionManager.getCurrentRect().top) > 5)
-				|| (Math.abs(dstRect.bottom - this.mPositionManager.getCurrentRect().bottom) > 5)) {
-			return true;
-		}
-
-		return false;
+		Rect localRect = this.mPositionManager.getDstRectAfterScale(true);
+		Log.d("FocusedRelativeLayout", "checkFocusPosition this.mPositionManager.getCurrentRect() = " + this.mPositionManager.getCurrentRect()
+				+ ", this.mPositionManager.getDstRectAfterScale(true) = " + this.mPositionManager.getDstRectAfterScale(true));
+		return (Math.abs(localRect.left - this.mPositionManager.getCurrentRect().left) > 5) || (Math.abs(localRect.right - this.mPositionManager.getCurrentRect().right) > 5)
+				|| (Math.abs(localRect.top - this.mPositionManager.getCurrentRect().top) > 5) || (Math.abs(localRect.bottom - this.mPositionManager.getCurrentRect().bottom) > 5);
 	}
 
 	public void computeScroll() {
@@ -469,137 +481,107 @@ public class FocusedRelativeLayout extends RelativeLayout implements FocusedBase
 			scrollTo(this.mScroller.getCurrX(), this.mScroller.getCurrY());
 			Log.d("FocusedRelativeLayout", "computeScroll mScroller.getCurrX() = " + this.mScroller.getCurrX());
 		}
-
+		if (this.mScroller.isFinished())
+			reportScrollStateChange(0);
 		super.computeScroll();
 	}
 
-	class FocusedLayoutPositionManager extends FocusedBasePositionManager {
-		public FocusedLayoutPositionManager(Context context, View container) {
-			super(context, container);
-		}
+	public static abstract interface OnScrollListener {
+		public static final int SCROLL_STATE_IDLE = 0;
+		public static final int SCROLL_STATE_TOUCH_SCROLL = 1;
+		public static final int SCROLL_STATE_FLING = 2;
 
-		public Rect getDstRectBeforeScale(boolean isBeforeScale) {
-			View selectedView = getSelectedView();
-			if (selectedView == null) {
-				return null;
-			}
-			Rect imgRect = new Rect();
-			Rect gridViewRect = new Rect();
+		public abstract void onScrollStateChanged(ViewGroup paramViewGroup, int paramInt);
 
-			if ((selectedView instanceof FocusedRelativeLayout.ScalePostionInterface)) {
-				FocusedRelativeLayout.ScalePostionInterface face = (FocusedRelativeLayout.ScalePostionInterface) selectedView;
-				if (face.getIfScale())
-					imgRect = face.getScaledRect(getItemScaleXValue(), getItemScaleYValue(), true);
-				else
-					imgRect = face.getScaledRect(getItemScaleXValue(), getItemScaleYValue(), false);
-			} else {
-				selectedView.getGlobalVisibleRect(imgRect);
-				int imgW = imgRect.right - imgRect.left;
-				int imgH = imgRect.bottom - imgRect.top;
-				if (!isBeforeScale) {
-					imgRect.left = ((int) (imgRect.left + (1.0D - getItemScaleXValue()) * imgW / 2.0D));
-					imgRect.top = ((int) (imgRect.top + (1.0D - getItemScaleYValue()) * imgH / 2.0D));
-					imgRect.right = ((int) (imgRect.left + imgW * getItemScaleXValue()));
-					imgRect.bottom = ((int) (imgRect.top + imgH * getItemScaleYValue()));
-				}
-			}
-			Log.d("FocusedBasePositionManager", "getImageRect imgRect = " + imgRect);
-
-			FocusedRelativeLayout.this.getGlobalVisibleRect(gridViewRect);
-
-			imgRect.left -= gridViewRect.left;
-			imgRect.right -= gridViewRect.left;
-			imgRect.top -= gridViewRect.top;
-			imgRect.bottom -= gridViewRect.top;
-
-			imgRect.left += FocusedRelativeLayout.this.mScroller.getCurrX();
-			imgRect.right += FocusedRelativeLayout.this.mScroller.getCurrX();
-
-			imgRect.top -= getSelectedPaddingTop();
-			imgRect.left -= getSelectedPaddingLeft();
-			imgRect.right += getSelectedPaddingRight();
-			imgRect.bottom += getSelectedPaddingBottom();
-
-			imgRect.left += getManualPaddingLeft();
-			imgRect.right += getManualPaddingRight();
-			imgRect.top += getManualPaddingTop();
-			imgRect.bottom += getManualPaddingBottom();
-
-			return imgRect;
-		}
-
-		public Rect getDstRectAfterScale(boolean isShadow) {
-			View selectedView = getSelectedView();
-			if (selectedView == null) {
-				return null;
-			}
-			Rect imgRect = new Rect();
-			Rect gridViewRect = new Rect();
-
-			if ((selectedView instanceof FocusedRelativeLayout.ScalePostionInterface)) {
-				FocusedRelativeLayout.ScalePostionInterface face = (FocusedRelativeLayout.ScalePostionInterface) selectedView;
-				imgRect = face.getScaledRect(getItemScaleXValue(), getItemScaleYValue(), false);
-			} else {
-				selectedView.getGlobalVisibleRect(imgRect);
-			}
-			Log.d("FocusedBasePositionManager", "getImageRect imgRect = " + imgRect);
-
-			FocusedRelativeLayout.this.getGlobalVisibleRect(gridViewRect);
-
-			imgRect.left -= gridViewRect.left;
-			imgRect.right -= gridViewRect.left;
-			imgRect.top -= gridViewRect.top;
-			imgRect.bottom -= gridViewRect.top;
-
-			imgRect.left += FocusedRelativeLayout.this.mScroller.getCurrX();
-			imgRect.right += FocusedRelativeLayout.this.mScroller.getCurrX();
-
-			if ((isShadow) && (isLastFrame())) {
-				imgRect.top -= getSelectedShadowPaddingTop();
-				imgRect.left -= getSelectedShadowPaddingLeft();
-				imgRect.right += getSelectedShadowPaddingRight();
-				imgRect.bottom += getSelectedShadowPaddingBottom();
-			} else {
-				imgRect.top -= getSelectedPaddingTop();
-				imgRect.left -= getSelectedPaddingLeft();
-				imgRect.right += getSelectedPaddingRight();
-				imgRect.bottom += getSelectedPaddingBottom();
-			}
-
-			imgRect.left += getManualPaddingLeft();
-			imgRect.right += getManualPaddingRight();
-			imgRect.top += getManualPaddingTop();
-			imgRect.bottom += getManualPaddingBottom();
-
-			return imgRect;
-		}
-
-		public void drawChild(Canvas canvas) {
-		}
+		public abstract void onScroll(ViewGroup paramViewGroup, int paramInt1, int paramInt2, int paramInt3);
 	}
 
-	class HotScroller extends Scroller {
-		public HotScroller(Context context, Interpolator interpolator, boolean flywheel) {
-			super(context, interpolator, flywheel);
+	class FocusedLayoutPositionManager extends FocusedBasePositionManager {
+		public FocusedLayoutPositionManager(Context paramView, View arg3) {
+			super(paramView, arg3);
 		}
 
-		public HotScroller(Context context, Interpolator interpolator) {
-			super(context, interpolator);
-		}
-
-		public HotScroller(Context context) {
-			super(context, new AccelerateDecelerateInterpolator());
-		}
-
-		public boolean computeScrollOffset() {
-			boolean isFinished = isFinished();
-			boolean needInvalidate = FocusedRelativeLayout.this.checkFocusPosition();
-			Log.d("FocusedRelativeLayout", "computeScrollOffset isFinished = " + isFinished + ", mOutsieScroll = " + FocusedRelativeLayout.this.mOutsieScroll + ", needInvalidate = " + needInvalidate + ", this = " + this);
-			if ((FocusedRelativeLayout.this.mOutsieScroll) || (!isFinished) || (needInvalidate)) {
-				FocusedRelativeLayout.this.invalidate();
+		public Rect getDstRectBeforeScale(boolean paramBoolean) {
+			View localView = getSelectedView();
+			if (null == localView)
+				return null;
+			Rect localRect1 = new Rect();
+			Rect localRect2 = new Rect();
+			if ((localView instanceof FocusedRelativeLayout.ScalePostionInterface)) {
+				FocusedRelativeLayout.ScalePostionInterface localScalePostionInterface = (FocusedRelativeLayout.ScalePostionInterface) localView;
+				if (localScalePostionInterface.getIfScale())
+					localRect1 = localScalePostionInterface.getScaledRect(getItemScaleXValue(), getItemScaleYValue(), true);
+				else
+					localRect1 = localScalePostionInterface.getScaledRect(getItemScaleXValue(), getItemScaleYValue(), false);
+			} else {
+				localView.getGlobalVisibleRect(localRect1);
+				int i = localRect1.right - localRect1.left;
+				int j = localRect1.bottom - localRect1.top;
+				if (!paramBoolean) {
+					localRect1.left = ((int) (localRect1.left + (1.0D - getItemScaleXValue()) * i / 2.0D));
+					localRect1.top = ((int) (localRect1.top + (1.0D - getItemScaleYValue()) * j / 2.0D));
+					localRect1.right = ((int) (localRect1.left + i * getItemScaleXValue()));
+					localRect1.bottom = ((int) (localRect1.top + j * getItemScaleYValue()));
+				}
 			}
-			FocusedRelativeLayout.this.init();
-			return super.computeScrollOffset();
+			Log.d("FocusedBasePositionManager", "getImageRect imgRect = " + localRect1);
+			FocusedRelativeLayout.this.getGlobalVisibleRect(localRect2);
+			localRect1.left -= localRect2.left;
+			localRect1.right -= localRect2.left;
+			localRect1.top -= localRect2.top;
+			localRect1.bottom -= localRect2.top;
+			localRect1.left += FocusedRelativeLayout.this.mScroller.getCurrX();
+			localRect1.right += FocusedRelativeLayout.this.mScroller.getCurrX();
+			localRect1.top -= getSelectedPaddingTop();
+			localRect1.left -= getSelectedPaddingLeft();
+			localRect1.right += getSelectedPaddingRight();
+			localRect1.bottom += getSelectedPaddingBottom();
+			localRect1.left += getManualPaddingLeft();
+			localRect1.right += getManualPaddingRight();
+			localRect1.top += getManualPaddingTop();
+			localRect1.bottom += getManualPaddingBottom();
+			return localRect1;
+		}
+
+		public Rect getDstRectAfterScale(boolean paramBoolean) {
+			View localView = getSelectedView();
+			if (null == localView)
+				return null;
+			Rect localRect1 = new Rect();
+			Rect localRect2 = new Rect();
+			if ((localView instanceof FocusedRelativeLayout.ScalePostionInterface)) {
+				FocusedRelativeLayout.ScalePostionInterface localScalePostionInterface = (FocusedRelativeLayout.ScalePostionInterface) localView;
+				localRect1 = localScalePostionInterface.getScaledRect(getItemScaleXValue(), getItemScaleYValue(), false);
+			} else {
+				localView.getGlobalVisibleRect(localRect1);
+			}
+			Log.d("FocusedBasePositionManager", "getImageRect imgRect = " + localRect1);
+			FocusedRelativeLayout.this.getGlobalVisibleRect(localRect2);
+			localRect1.left -= localRect2.left;
+			localRect1.right -= localRect2.left;
+			localRect1.top -= localRect2.top;
+			localRect1.bottom -= localRect2.top;
+			localRect1.left += FocusedRelativeLayout.this.mScroller.getCurrX();
+			localRect1.right += FocusedRelativeLayout.this.mScroller.getCurrX();
+			if ((paramBoolean) && (isLastFrame())) {
+				localRect1.top -= getSelectedShadowPaddingTop();
+				localRect1.left -= getSelectedShadowPaddingLeft();
+				localRect1.right += getSelectedShadowPaddingRight();
+				localRect1.bottom += getSelectedShadowPaddingBottom();
+			} else {
+				localRect1.top -= getSelectedPaddingTop();
+				localRect1.left -= getSelectedPaddingLeft();
+				localRect1.right += getSelectedPaddingRight();
+				localRect1.bottom += getSelectedPaddingBottom();
+			}
+			localRect1.left += getManualPaddingLeft();
+			localRect1.right += getManualPaddingRight();
+			localRect1.top += getManualPaddingTop();
+			localRect1.bottom += getManualPaddingBottom();
+			return localRect1;
+		}
+
+		public void drawChild(Canvas paramCanvas) {
 		}
 	}
 
@@ -618,5 +600,30 @@ public class FocusedRelativeLayout extends RelativeLayout implements FocusedBase
 		public abstract Rect getScaledRect(float paramFloat1, float paramFloat2, boolean paramBoolean);
 
 		public abstract boolean getIfScale();
+	}
+
+	class HotScroller extends Scroller {
+		public HotScroller(Context paramInterpolator, Interpolator paramBoolean, boolean arg4) {
+			super(paramInterpolator, paramBoolean, arg4);
+		}
+
+		public HotScroller(Context paramInterpolator, Interpolator arg3) {
+			super(paramInterpolator, arg3);
+		}
+
+		public HotScroller(Context arg2) {
+			super(arg2);
+		}
+
+		public boolean computeScrollOffset() {
+			boolean bool1 = isFinished();
+			boolean bool2 = FocusedRelativeLayout.this.checkFocusPosition();
+			Log.d("FocusedRelativeLayout", "computeScrollOffset isFinished = " + bool1 + ", mOutsieScroll = " + FocusedRelativeLayout.this.mOutsieScroll + ", needInvalidate = "
+					+ bool2 + ", this = " + this);
+			if ((FocusedRelativeLayout.this.mOutsieScroll) || (!bool1) || (bool2))
+				FocusedRelativeLayout.this.invalidate();
+			FocusedRelativeLayout.this.init();
+			return super.computeScrollOffset();
+		}
 	}
 }

@@ -1,8 +1,8 @@
 package io.viva.tv.ui.demo.adapter;
 
+import io.viva.tv.app.widget.FocusedBasePositionManager.FocusItemSelectedListener;
+import io.viva.tv.app.widget.adapter.PagerAdapter;
 import io.viva.tv.app.widget.FocusedGridView;
-import io.viva.tv.app.widget.FocusedGridView.FocusItemSelectedListener;
-import io.viva.tv.app.widget.PagerAdapter;
 import io.viva.tv.app.widget.ViewPager;
 import io.viva.tv.ui.demo.R;
 
@@ -110,9 +110,10 @@ public class DemoGridPageAdapter extends PagerAdapter {
 	}
 
 	private FocusItemSelectedListener mOnItemSelectedListener = new FocusItemSelectedListener() {
+
 		@Override
-		public void onItemSelected(View v, int position, boolean isSelected, AdapterView parent) {
-			Log.d("aabb", "====Selected==position=========" + position);
+		public void onItemSelected(View paramView1, int paramInt, boolean paramBoolean, View paramView2) {
+			Log.d("aabb", "====Selected==position=========" + paramInt);
 		}
 	};
 	public OnItemClickListener listener = new OnItemClickListener() {

@@ -6,16 +6,13 @@ import android.widget.AdapterView;
 public abstract class TvOnItemClickListener implements AdapterView.OnItemClickListener {
 	boolean isPalyBtnClick = false;
 
-	public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+	public void onItemClick(AdapterView<?> paramAdapterView, View paramView, int paramInt, long paramLong) {
 		synchronized (this) {
-			if (this.isPalyBtnClick) {
+			if (this.isPalyBtnClick)
 				return;
-			}
 			this.isPalyBtnClick = true;
 		}
-
-		onItemClicked(parent, view, position, id);
-
+		onItemClicked(paramAdapterView, paramView, paramInt, paramLong);
 		synchronized (this) {
 			this.isPalyBtnClick = false;
 		}
@@ -23,3 +20,8 @@ public abstract class TvOnItemClickListener implements AdapterView.OnItemClickLi
 
 	public abstract void onItemClicked(AdapterView<?> paramAdapterView, View paramView, int paramInt, long paramLong);
 }
+
+/*
+ * Location: C:\Users\Administrator\Desktop\AliTvAppSdk.jar Qualified Name:
+ * com.yunos.tv.app.widget.TvOnItemClickListener JD-Core Version: 0.6.2
+ */
