@@ -546,27 +546,27 @@ public abstract class FocusedBasePositionManager {
 
 	public abstract void drawChild(Canvas paramCanvas);
 
-	public static abstract interface FocusItemSelectedListener {
-		public abstract void onItemSelected(View paramView1, int paramInt, boolean paramBoolean, View paramView2);
+	public interface FocusItemSelectedListener {
+		public void onItemSelected(View paramView1, int paramInt, boolean paramBoolean, View paramView2);
 	}
 
-	public static abstract interface PositionInterface {
-		public abstract void setManualPadding(int paramInt1, int paramInt2, int paramInt3, int paramInt4);
+	public interface PositionInterface {
+		public void setManualPadding(int paramInt1, int paramInt2, int paramInt3, int paramInt4);
 
-		public abstract void setFrameRate(int paramInt);
+		public void setFrameRate(int paramInt);
 
-		public abstract void setFocusResId(int paramInt);
+		public void setFocusResId(int paramInt);
 
-		public abstract void setFocusShadowResId(int paramInt);
+		public void setFocusShadowResId(int paramInt);
 
-		public abstract void setItemScaleValue(float paramFloat1, float paramFloat2);
+		public void setItemScaleValue(float paramFloat1, float paramFloat2);
 
-		public abstract void setFocusMode(int paramInt);
+		public void setFocusMode(int paramInt);
 
-		public abstract void setFocusViewId(int paramInt);
+		public void setFocusViewId(int paramInt);
 
-		public abstract void setOnItemClickListener(AdapterView.OnItemClickListener paramOnItemClickListener);
+		public void setOnItemClickListener(AdapterView.OnItemClickListener paramOnItemClickListener);
 
-		public abstract void setOnItemSelectedListener(FocusedBasePositionManager.FocusItemSelectedListener paramFocusItemSelectedListener);
+		public void setOnItemSelectedListener(FocusedBasePositionManager.FocusItemSelectedListener paramFocusItemSelectedListener);
 	}
 }

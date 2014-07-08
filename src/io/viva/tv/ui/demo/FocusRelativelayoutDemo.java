@@ -40,7 +40,7 @@ public class FocusRelativelayoutDemo extends Activity {
 		layout.setManualPadding(0, 0, 0, 0);
 
 		ReflectImageView demoImage0 = (ReflectImageView) findViewById(R.id.demo_image1);
-		demoImage0.setImageResource(R.drawable.image2, 80);
+		demoImage0.setImageResource(R.drawable.image2, 100);
 		demoImage0.setText("image1");
 
 		ReflectImageView demoImage1 = (ReflectImageView) findViewById(R.id.demo_image2);

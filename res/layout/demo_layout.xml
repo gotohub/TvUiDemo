@@ -9,7 +9,7 @@
     <io.viva.tv.app.widget.ReflectImageView
         android:id="@+id/demo_image1"
         android:layout_width="230dip"
-        android:layout_height="496dip"
+        android:layout_height="490dip"
         android:layout_alignParentLeft="true"
         android:layout_marginLeft="50dip"
         android:focusable="true"
