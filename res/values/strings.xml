@@ -3,5 +3,6 @@
     <string name="app_name">uidemo</string>
     <string name="hello_world">Hello world!</string>
     <string name="menu_settings">Settings</string>
-
+    <string name="can u help me about tv focus widget ? mail">gotolib@qq.com</string>
+    
 </resources>
